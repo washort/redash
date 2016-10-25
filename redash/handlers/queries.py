@@ -61,7 +61,10 @@ class QueryListResource(BaseResource):
         query_def['user'] = self.current_user
         query_def['data_source'] = data_source
         query_def['org'] = self.current_org
+        text = query_def.pop('query')
+        query_def
         query = models.Query.create(**query_def)
+        models.QueryVersion.create(text=text, query=query)
 
         self.record_event({
             'action': 'create',
@@ -99,6 +102,8 @@ class QueryResource(BaseResource):
         for field in ['id', 'created_at', 'api_key', 'visualizations', 'latest_query_data', 'user', 'last_modified_by', 'org']:
             query_def.pop(field, None)
 
+        text = query_def.pop('query', None)
+        query.maybe_update_text(text)
         if 'latest_query_data_id' in query_def:
             query_def['latest_query_data'] = query_def.pop('latest_query_data_id')
 
@@ -135,6 +140,6 @@ class QueryRefreshResource(BaseResource):
 
         parameter_values = collect_parameters_from_request(request.args)
 
-        return run_query(query.data_source, parameter_values, query.query, query.id)
+        return run_query(query.data_source, parameter_values, query.latest_version().text, query.id)
 
 

@@ -536,7 +536,7 @@ class QueryResult(BaseModel, BelongsToOrgMixin):
 
         logging.info("Inserted query (%s) data; id=%s", query_hash, query_result.id)
 
-        sql = "UPDATE queries SET latest_query_data_id = %s WHERE query_hash = %s AND data_source_id = %s RETURNING id"
+        sql = "UPDATE queries as q SET latest_query_data_id = %s FROM query_versions as v WHERE q.id = v.query_id AND v.query_hash = %s AND v.created_at = (SELECT max(created_at) from query_versions where query_id = q.id) AND q.data_source_id = %s RETURNING q.id"
         query_ids = [row[0] for row in db.database.execute_sql(sql, params=(query_result.id, query_hash, data_source_id))]
 
         # TODO: when peewee with update & returning support is released, we can get back to using this code:
@@ -584,8 +584,6 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     latest_query_data = peewee.ForeignKeyField(QueryResult, null=True)
     name = peewee.CharField(max_length=255)
     description = peewee.CharField(max_length=4096, null=True)
-    query = peewee.TextField()
-    query_hash = peewee.CharField(max_length=32)
     api_key = peewee.CharField(max_length=40)
     user = peewee.ForeignKeyField(User)
     last_modified_by = peewee.ForeignKeyField(User, null=True, related_name="modified_queries")
@@ -596,14 +594,24 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     class Meta:
         db_table = 'queries'
 
+    def latest_version(self):
+        try:
+            return (QueryVersion.select(QueryVersion)
+                    .where(QueryVersion.query == self.id)
+                    .order_by(QueryVersion.created_at.desc())
+                    .get())
+        except QueryVersion.DoesNotExist:
+            return None
+
     def to_dict(self, with_stats=False, with_visualizations=False, with_user=True, with_last_modified_by=True):
+        qv = self.latest_version()
         d = {
             'id': self.id,
             'latest_query_data_id': self._data.get('latest_query_data', None),
             'name': self.name,
             'description': self.description,
-            'query': self.query,
-            'query_hash': self.query_hash,
+            'query': qv and qv.text,
+            'query_hash': qv and qv.query_hash,
             'schedule': self.schedule,
             'api_key': self.api_key,
             'is_archived': self.is_archived,
@@ -679,7 +687,7 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
         outdated_queries = {}
         for query in queries:
             if should_schedule_next(query.latest_query_data.retrieved_at, now, query.schedule):
-                key = "{}:{}".format(query.query_hash, query.data_source.id)
+                key = "{}:{}".format(query.latest_version().query_hash, query.data_source.id)
                 outdated_queries[key] = query
 
         return outdated_queries.values()
@@ -726,7 +734,6 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
 
     def pre_save(self, created):
         super(Query, self).pre_save(created)
-        self.query_hash = utils.gen_query_hash(self.query)
         self._set_api_key()
 
         if self.last_modified_by is None:
@@ -735,6 +742,11 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     def post_save(self, created):
         if created:
             self._create_default_visualizations()
+
+    def maybe_update_text(self, text):
+        v = self.latest_version()
+        if text and (v is None or v.text != text):
+            QueryVersion.create(text=text, query=self)
 
     def _create_default_visualizations(self):
         table_visualization = Visualization(query=self, name="Table",
@@ -745,7 +757,7 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     def _set_api_key(self):
         if not self.api_key:
             self.api_key = hashlib.sha1(
-                u''.join((str(time.time()), self.query, str(self.user_id), self.name)).encode('utf-8')).hexdigest()
+                u''.join((str(time.time()), str(self.id), str(self.user_id), self.name)).encode('utf-8')).hexdigest()
 
     @property
     def runtime(self):
@@ -764,6 +776,22 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
 
     def __unicode__(self):
         return unicode(self.id)
+
+
+class QueryVersion(BaseModel):
+    query = peewee.ForeignKeyField(Query, null=False)
+    created_at = DateTimeTZField(default=datetime.datetime.now)
+    text = peewee.TextField()
+    query_hash = peewee.CharField(max_length=32)
+    class Meta:
+        db_table = 'query_versions'
+
+    def pre_save(self, created):
+        if not created:
+            raise ValueError("Query versions should not be modified")
+        super(QueryVersion, self).pre_save(created)
+        self.query_hash = utils.gen_query_hash(self.text)
+        self.created_at = datetime.datetime.now()
 
 
 class Alert(ModelTimestampsMixin, BaseModel):

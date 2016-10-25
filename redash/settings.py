@@ -229,3 +229,5 @@ COMMON_CLIENT_CONFIG = {
     'mailSettingsMissing': MAIL_DEFAULT_SENDER is None,
     'logoUrl': LOGO_URL
 }
+
+TESTING=parse_boolean(os.environ.get("TESTING", "false"))

@@ -85,7 +85,7 @@ def embed(query_id, visualization_id, org_slug=None):
             #          are a potential risk of SQL injections.
             #
             max_age = int(request.args.get('maxAge', 0))
-            results = run_query_sync(query.data_source, parameter_values, query.query, max_age=max_age)
+            results = run_query_sync(query.data_source, parameter_values, query.latest_version().text, max_age=max_age)
             if results is None:
                 abort(400, message="Unable to get results for this query")
             else:

@@ -229,7 +229,9 @@ class Factory(object):
             'org': self.org
         }
         args.update(kwargs)
-        return query_factory.create(**args)
+        q = query_factory.create(**args)
+        q.maybe_update_text(args.get('query', None))
+        return q
 
     def create_query_with_params(self, **kwargs):
         args = {

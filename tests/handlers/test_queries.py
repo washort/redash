@@ -86,19 +86,18 @@ class QueryRefreshTest(BaseTestCase):
         self.path = '/api/queries/{}/refresh'.format(self.query.id)
 
     def test_refresh_regular_query(self):
+        self.query.maybe_update_text("SELECT 1")
         response = self.make_request('post', self.path)
         self.assertEqual(200, response.status_code)
 
     def test_refresh_of_query_with_parameters(self):
-        self.query.query = "SELECT {{param}}"
-        self.query.save()
+        self.query.maybe_update_text("SELECT {{param}}")
 
         response = self.make_request('post', "{}?p_param=1".format(self.path))
         self.assertEqual(200, response.status_code)
 
     def test_refresh_of_query_with_parameters_without_parameters(self):
-        self.query.query = "SELECT {{param}}"
-        self.query.save()
+        self.query.maybe_update_text("SELECT {{param}}")
 
         response = self.make_request('post', "{}".format(self.path))
         self.assertEqual(400, response.status_code)

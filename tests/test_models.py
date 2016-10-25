@@ -25,13 +25,14 @@ class DashboardTest(BaseTestCase):
 class QueryTest(BaseTestCase):
     def test_changing_query_text_changes_hash(self):
         q = self.factory.create_query()
+        q.maybe_update_text("")
 
-        old_hash = q.query_hash
-        q.update_instance(query="SELECT 2;")
+        old_hash = q.latest_version().query_hash
+        q.maybe_update_text("SELECT 2;")
 
         q = models.Query.get_by_id(q.id)
 
-        self.assertNotEquals(old_hash, q.query_hash)
+        self.assertNotEquals(old_hash, q.latest_version().query_hash)
 
     def test_search_finds_in_name(self):
         q1 = self.factory.create_query(name=u"Testing seåřċħ")
@@ -245,8 +246,9 @@ class QueryArchiveTest(BaseTestCase):
     def test_archived_query_doesnt_return_in_all(self):
         query = self.factory.create_query(schedule="1")
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-        query_result, _ = models.QueryResult.store_result(query.org, query.data_source.id, query.query_hash, query.query, "1",
-                                                       123, yesterday)
+        query_result, _ = models.QueryResult.store_result(
+            query.org, query.data_source.id, query.latest_version().query_hash,
+            query.latest_version().query, "1", 123, yesterday)
 
         query.latest_query_data = query_result
         query.save()

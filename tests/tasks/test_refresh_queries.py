@@ -13,7 +13,7 @@ class TestRefreshQueries(BaseTestCase):
         query = self.factory.create_query(schedule="60")
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
         query.latest_query_data = query_result
         query.save()
 
@@ -25,7 +25,7 @@ class TestRefreshQueries(BaseTestCase):
         query = self.factory.create_query(schedule="60")
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                        query_hash=query.query_hash)
+                                                        query_hash=query.latest_version().query_hash)
         query.latest_query_data = query_result
         query.save()
 
@@ -45,7 +45,7 @@ class TestRefreshQueries(BaseTestCase):
         query = self.factory.create_query(schedule="1200")
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
 
         with patch('redash.tasks.queries.enqueue_query') as add_job_mock:
             refresh_queries()
@@ -55,7 +55,7 @@ class TestRefreshQueries(BaseTestCase):
         query = self.factory.create_query(schedule=None)
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
 
         with patch('redash.tasks.queries.enqueue_query') as add_job_mock:
             refresh_queries()
@@ -63,10 +63,10 @@ class TestRefreshQueries(BaseTestCase):
 
     def test_enqueues_query_only_once(self):
         query = self.factory.create_query(schedule="60")
-        query2 = self.factory.create_query(schedule="60", query=query.query, query_hash=query.query_hash)
+        query2 = self.factory.create_query(schedule="60", query=query.query, query_hash=query.latest_version().query_hash)
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
         query.latest_query_data = query_result
         query2.latest_query_data = query_result
         query.save()
@@ -78,10 +78,10 @@ class TestRefreshQueries(BaseTestCase):
 
     def test_enqueues_query_with_correct_data_source(self):
         query = self.factory.create_query(schedule="60", data_source=self.factory.create_data_source())
-        query2 = self.factory.create_query(schedule="60", query=query.query, query_hash=query.query_hash)
+        query2 = self.factory.create_query(schedule="60", query=query.query, query_hash=query.latest_version().query_hash)
         retrieved_at = utcnow() - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
         query.latest_query_data = query_result
         query2.latest_query_data = query_result
         query.save()
@@ -96,11 +96,11 @@ class TestRefreshQueries(BaseTestCase):
 
     def test_enqueues_only_for_relevant_data_source(self):
         query = self.factory.create_query(schedule="60")
-        query2 = self.factory.create_query(schedule="3600", query=query.query, query_hash=query.query_hash)
+        query2 = self.factory.create_query(schedule="3600", query=query.query, query_hash=query.latest_version().query_hash)
         import psycopg2
         retrieved_at = utcnow().replace(tzinfo=psycopg2.tz.FixedOffsetTimezone(offset=0, name=None)) - datetime.timedelta(minutes=10)
         query_result = self.factory.create_query_result(retrieved_at=retrieved_at, query=query.query,
-                                                   query_hash=query.query_hash)
+                                                   query_hash=query.latest_version().query_hash)
         query.latest_query_data = query_result
         query2.latest_query_data = query_result
         query.save()
