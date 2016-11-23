@@ -246,6 +246,10 @@ to add those CSS styles here. */
   display: block;
 }
 
+.dashboards .dropdown-submenu:hover > .dropdown-menu {
+  display: flex;
+}
+
 .dropdown-submenu > a:after {
   display: block;
   content: " ";
@@ -274,6 +278,34 @@ to add those CSS styles here. */
   -webkit-border-radius: 6px 0 6px 6px;
   -moz-border-radius: 6px 0 6px 6px;
   border-radius: 6px 0 6px 6px;
+}
+
+.dashboards .dropdown-menu {
+  align-items: flex-start;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  max-height: 500px;
+}
+
+.dashboards.open > .dropdown-menu {
+  display: flex;
+}
+
+.dashboards > .dropdown-menu {
+  width: 80vw;
+  align-items: flex-start;
+}
+
+.dashboards .dropdown-menu > li a {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.dashboards .dropdown-menu > li a,
+.dashboards .dropdown-submenu > a {
+  width: 20vw;
 }
 
 .rd-tab .remove {
