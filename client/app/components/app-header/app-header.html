@@ -11,7 +11,7 @@
     </div>
     <div class="collapse navbar-collapse" uib-collapse="!isNavOpen">
       <ul class="nav navbar-nav">
-        <li class="dropdown" ng-show="$ctrl.showDashboardsMenu" uib-dropdown>
+        <li class="dropdown dashboards" ng-show="$ctrl.showDashboardsMenu" uib-dropdown>
           <a href="#" class="dropdown-toggle" uib-dropdown-toggle title="Dashboards">
             <span class="visible-xs visible-md visible-lg">Dashboards <b class="caret"></b></span>
             <span class="visible-sm"><i class="zmdi zmdi-view-dashboard"></i> <b class="caret"></b></span>
@@ -21,7 +21,7 @@
             <li><a href="dashboards">Dashboards</a></li>
             <li class="divider" ng-if="$ctrl.dashboards | notEmpty"></li>
             <li ng-repeat="dashboard in $ctrl.dashboards">
-              <a href="dashboard/{{dashboard.slug}}" ng-bind="dashboard.name"></a>
+              <a title="{{dashboard.name}}" href="dashboard/{{dashboard.slug}}" ng-bind="dashboard.name"></a>
             </li>
           </ul>
         </li>
