@@ -142,9 +142,12 @@ class ChangeTrackingMixin(object):
         changes = {}
         for attr in inspect(self.__class__).column_attrs:
             col, = attr.columns
-            if attr.key not in self.skipped_fields:
-                changes[col.name] = {'previous': self._clean_values[col.name],
-                                     'current': getattr(self, attr.key)}
+            clean_val = self._clean_values[col.name]
+            current_val = getattr(self, attr.key)
+            if (attr.key not in self.skipped_fields
+                and clean_val != current_val):
+                changes[col.name] = {'previous': clean_val,
+                                     'current': current_val}
 
         db.session.add(Change(object=self,
                               object_version=self.version,
