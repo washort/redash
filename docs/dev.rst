@@ -7,5 +7,3 @@ Developer Information
 
     dev/vagrant
     dev/*
-
-

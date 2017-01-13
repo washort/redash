@@ -54,4 +54,5 @@ TOC
    datasources
    usage
    dev
+   api
    misc
