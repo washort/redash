@@ -64,12 +64,11 @@ def create_and_login_user(org, name, email):
         if user_object.name != name:
             logger.debug("Updating user name (%r -> %r)", user_object.name, name)
             user_object.name = name
-            models.db.session.commit()
     except NoResultFound:
         logger.debug("Creating user object (%r)", name)
         user_object = models.User(org=org, name=name, email=email, group_ids=[org.default_group.id])
         models.db.session.add(user_object)
-
+    models.db.session.commit()
     login_user(user_object, remember=True)
 
     return user_object
