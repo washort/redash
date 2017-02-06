@@ -667,3 +667,36 @@ div.table-name:hover {
 .m-2{
   margin:2px;
 }
+
+/* Compare Query Version container */
+/* Offers slight visual improvement (alignment) to modern UAs */
+.compare-query-version {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diff-removed {
+  background-color: rgba(208, 2, 27, 0.3);
+}
+
+.diff-added {
+  background-color: rgba(65, 117, 5, 0.3);
+}
+
+.query-diff-container span {
+  display: inline-block;
+  border-radius: 3px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+.query-diff-container > div {
+  float: left;
+  width: calc(50% - 5px);
+  margin: 0 10px 0 0;
+}
+
+.query-diff-container > div:last-child {
+  margin: 0;
+}
