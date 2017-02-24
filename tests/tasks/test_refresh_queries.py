@@ -107,3 +107,24 @@ class TestRefreshQueries(BaseTestCase):
         with patch('redash.tasks.queries.enqueue_query') as add_job_mock:
             refresh_queries()
             add_job_mock.assert_called_once_with(query.query_text, query.data_source, query.user_id, scheduled=True, metadata=ANY)
+
+    def test_enqueues_parameterized_queries(self):
+        """
+        Scheduled queries with parameters use saved values.
+        """
+        query = self.factory.create_query(
+            query_text="select {{n}}",
+            options={"parameters": [{
+                "global": False,
+                "type": "text",
+                "name": "n",
+                "value": "42",
+                "title": "n"}]})
+        oq = staticmethod(lambda: [query])
+        with patch('redash.tasks.queries.enqueue_query') as add_job_mock, \
+                patch.object(Query, 'outdated_queries', oq):
+            refresh_queries()
+            add_job_mock.assert_called_with(
+                "select 42", query.data_source, query.user_id,
+                scheduled_query=query, metadata=ANY)
+
