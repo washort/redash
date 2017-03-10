@@ -1000,6 +1000,12 @@ class Change(GFKBase, db.Model):
             cls.object_type == obj.__class__.__tablename__).order_by(
                 cls.object_version.desc()).first()
 
+    @classmethod
+    def list_versions(cls, query):
+        return db.session.query(cls).filter(
+            cls.object_id == query.id,
+            cls.object_type == 'queries')
+
 
 class Alert(TimestampMixin, db.Model):
     UNKNOWN_STATE = 'unknown'
