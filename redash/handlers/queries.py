@@ -115,6 +115,7 @@ class QueryListResource(BaseResource):
         query_def['org'] = self.current_org
         query_def['is_draft'] = True
         query = models.Query.create(**query_def)
+        query.record_changes(changed_by=self.current_user)
         models.db.session.add(query)
         models.db.session.commit()
 
