@@ -166,10 +166,12 @@ class ChangeTrackingMixin(object):
 
         if changes:
             self.version = (self.version or 0) + 1
-            db.session.add(Change(object=self,
-                                  object_version=self.version,
-                                  user=changed_by,
-                                  change=changes))
+            change = Change(object=self,
+                            object_version=self.version,
+                            user=changed_by,
+                            change=changes)
+            db.session.add(change)
+            return change
 
 
 class BelongsToOrgMixin(object):
@@ -980,6 +982,7 @@ class Change(GFKBase, db.Model):
 
     def to_dict(self, full=True):
         d = {
+            'id': self.id,
             'object_id': self.object_id,
             'object_type': self.object_type,
             'object_version': self.object_version,

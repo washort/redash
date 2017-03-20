@@ -286,10 +286,7 @@ class QueryVersionListResource(BaseResource):
         return paginate(results, page, page_size, lambda q: q.to_dict(full=False))
 
 
-class QueryVersionResource(BaseResource):
+class ChangeResource(BaseResource):
     @require_permission('view_query')
-    def get(self, query_id, version_id):
-        return models.Change.query.filter(
-            models.Change.object_type == 'queries',
-            models.Change.object_id == query_id,
-            models.Change.object_version == version_id).one().to_dict()
+    def get(self, change_id):
+        return models.Change.query.get(change_id).to_dict()
