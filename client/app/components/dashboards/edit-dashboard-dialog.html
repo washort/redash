@@ -4,7 +4,7 @@
 </div>
 <div class="modal-body" ng-if="$ctrl.policy.isCreateDashboardEnabled()">
   <p>
-    <input type="text" class="form-control" placeholder="Dashboard Name" ng-model="$ctrl.dashboard.name" autofocus ng-keyup="$event.keyCode === 13 && $ctrl.saveDashboard()">
+    <input type="text" class="form-control" placeholder="Dashboard Name" ng-model="$ctrl.dashboard.name" autofocus ng-keyup="$event.keyCode === 13 && $ctrl.saveDashboard()" required>
   </p>
 </div>
 <div class="modal-footer" ng-if="$ctrl.policy.isCreateDashboardEnabled()">

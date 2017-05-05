@@ -11,6 +11,7 @@ from redash.serializers import serialize_dashboard
 from redash.permissions import (can_modify, require_admin_or_owner,
                                 require_object_modify_permission,
                                 require_permission)
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
 
 
@@ -146,6 +147,8 @@ class DashboardResource(BaseResource):
             models.db.session.commit()
         except StaleDataError:
             abort(409)
+        except IntegrityError:
+            abort(400)
 
         result = serialize_dashboard(dashboard, with_widgets=True, user=self.current_user)
         return result
