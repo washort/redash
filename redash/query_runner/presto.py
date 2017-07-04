@@ -34,6 +34,8 @@ PRESTO_TYPES_MAPPING = {
 class Presto(BaseQueryRunner):
     noop_query = 'SHOW TABLES'
     default_doc_url = 'https://prestodb.io/docs/current/'
+    data_source_version_query = "SELECT node_version AS version FROM system.runtime.nodes WHERE coordinator = true AND state = 'active'"
+    data_source_version_post_process = "none"
 
     @classmethod
     def configuration_schema(cls):
@@ -116,7 +118,7 @@ class Presto(BaseQueryRunner):
             column_tuples = [(i[0], PRESTO_TYPES_MAPPING.get(i[1], None)) for i in cursor.description]
             columns = self.fetch_columns(column_tuples)
             rows = [dict(zip(([c['name'] for c in columns]), r)) for i, r in enumerate(cursor.fetchall())]
-            data = {'columns': columns, 'rows': rows}
+            data = {'columns': columns, 'rows': rows, 'data_scanned': 'N/A'}
             json_data = json.dumps(data, cls=JSONEncoder)
             error = None
         except DatabaseError as db:
