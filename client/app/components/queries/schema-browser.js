@@ -24,9 +24,10 @@ function SchemaBrowserCtrl($scope) {
   this.isEmpty = function isEmpty() {
     return this.schema === undefined || this.schema.length === 0;
   this.flipToggleVersionedTables = (versionToggle) => {
+  this.flipToggleVersionedTables = (versionToggle, toggleString) => {
     if (versionToggle === false) {
       this.versionToggle = true;
-      this.versionFilter = '_v';
+      this.versionFilter = toggleString;
     } else {
       this.versionToggle = false;
       this.versionFilter = 'abcdefghijklmnop';
@@ -37,6 +38,7 @@ function SchemaBrowserCtrl($scope) {
 const SchemaBrowser = {
   bindings: {
     schema: '<',
+    tabletogglestring: '<',
     onRefresh: '&',
     flipToggleVersionedTables: '&',
   },
