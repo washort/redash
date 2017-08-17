@@ -110,7 +110,7 @@
                   <span class="zmdi zmdi-format-indent-increase"></span> Format
                 </button>
 
-                <div ng-if="query.id != undefined" class="btn-group" role="group" uib-dropdown>
+                <div ng-show="moreMenuIsPopulated()" ng-if="query.id != undefined" class="btn-group" role="group" uib-dropdown>
                   <button class="btn btn-default dropdown-toggle" uib-dropdown-toggle>
                     <span class="zmdi zmdi-more"></span>
                   </button>
