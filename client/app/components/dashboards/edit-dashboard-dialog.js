@@ -85,7 +85,6 @@ const EditDashboardDialog = {
                 'Please copy/backup your changes and reload this page.', { autoDismiss: false });
           }
         });
-        Events.record('edit', 'dashboard', this.dashboard.id);
       } else {
         $http.post('api/dashboards', {
           name: this.dashboard.name,

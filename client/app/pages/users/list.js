@@ -1,9 +1,7 @@
 import { Paginator } from '@/lib/pagination';
 import template from './list.html';
 
-function UsersCtrl(currentUser, Events, User) {
-  Events.record('view', 'page', 'users');
-
+function UsersCtrl(currentUser, User) {
   this.currentUser = currentUser;
   this.users = new Paginator([], { itemsPerPage: 20 });
   User.query((users) => {

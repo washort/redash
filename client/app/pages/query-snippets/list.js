@@ -1,9 +1,7 @@
 import { Paginator } from '@/lib/pagination';
 import template from './list.html';
 
-function SnippetsCtrl($location, currentUser, Events, QuerySnippet) {
-  Events.record('view', 'page', 'query_snippets');
-
+function SnippetsCtrl($location, currentUser, QuerySnippet) {
   this.snippets = new Paginator([], { itemsPerPage: 20 });
   QuerySnippet.query((snippets) => {
     this.snippets.updateRows(snippets);

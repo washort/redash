@@ -3,7 +3,7 @@ import template from './show.html';
 
 function UserCtrl(
   $scope, $routeParams, $http, $location, toastr,
-  clientConfig, currentUser, Events, User,
+  clientConfig, currentUser, User,
 ) {
   $scope.userId = $routeParams.userId;
   $scope.currentUser = currentUser;
@@ -13,7 +13,6 @@ function UserCtrl(
     $scope.userId = currentUser.id;
   }
 
-  Events.record('view', 'user', $scope.userId);
   $scope.canEdit = currentUser.hasPermission('admin') || currentUser.id === parseInt($scope.userId, 10);
   $scope.showSettings = false;
   $scope.showPasswordSettings = false;
