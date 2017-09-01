@@ -24,8 +24,6 @@ function QuerySearchCtrl($location, $filter, currentUser, Events, Query) {
       $location.search({ q: this.term });
     }
   };
-
-  Events.record('search', 'query', '', { term: this.term });
 }
 
 export default function init(ngModule) {
