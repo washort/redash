@@ -252,6 +252,10 @@ function ChartEditor(ColorPalette, clientConfig) {
         scope.options.bottomMargin = 50;
       }
 
+      if (!has(scope.options, 'xAxisLabelLength')) {
+        scope.options.xAxisLabelLength = 300;
+      }
+
       if (scope.columnNames) {
         each(scope.options.columnMapping, (value, key) => {
           if (scope.columnNames.length > 0 && !contains(scope.columnNames, key)) {

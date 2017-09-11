@@ -183,6 +183,12 @@
       <label class="control-label">Height</label>
       <input name="x-axis-height" type="number" class="form-control" ng-model="options.bottomMargin">
     </div>
+
+    <div class="form-group">
+      <label class="control-label">Label Length</label>
+      <input name="x-axis-label-length" type="number" class="form-control" ng-model="options.xAxisLabelLength">
+      <span class="info">How many characters should X Axis Labels be truncated at in the legend?</span>
+    </div>
   </div>
 
   <div ng-show="currentTab == 'yAxis'">
