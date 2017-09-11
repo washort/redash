@@ -13,6 +13,8 @@ Plotly.setPlotConfig({
   modeBarButtonsToRemove: ['sendDataToCloud'],
 });
 
+const DEFAULT_XAXIS_LABEL_LENGTH = 300;
+
 // The following colors will be used if you pick "Automatic" color.
 const BaseColors = {
   Blue: '#4572A7',
@@ -236,10 +238,15 @@ const PlotlyChart = () => {
       function recalculateOptions() {
         scope.data.length = 0;
         scope.layout.showlegend = has(scope.options, 'legend') ? scope.options.legend.enabled : true;
+        scope.layout.legend = {
+          bgcolor: '#cccccc',
+          wordWrap: 'normal',
+        };
         if (has(scope.options, 'bottomMargin')) {
           bottomMargin = parseInt(scope.options.bottomMargin, 10);
           scope.layout.margin.b = bottomMargin;
         }
+        const xAxisLabelLength = has(scope.options, 'xAxisLabelLength') ? parseInt(scope.options.xAxisLabelLength, 10) : DEFAULT_XAXIS_LABEL_LENGTH;
         delete scope.layout.barmode;
         delete scope.layout.xaxis;
         delete scope.layout.yaxis;
@@ -274,12 +281,13 @@ const PlotlyChart = () => {
 
             series.data.forEach((row) => {
               plotlySeries.values.push(row.y);
-              plotlySeries.labels.push(hasX ? row.x : `Slice ${index}`);
-              if (scope.options.seriesOptions[hasX ? row.x : `Slice ${index}`] === undefined) {
+              plotlySeries.labels.push(hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`);
+              if (scope.options.seriesOptions[hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`] === undefined) {
                 plotlySeries.marker.colors.push(getColor(index));
                 index += 1;
               } else {
-                plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x : `Slice ${index}`].color);
+                plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`].color);
+              }
             });
 
             scope.data.push(plotlySeries);
