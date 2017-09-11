@@ -283,7 +283,7 @@
       <th>Color</th>
       </thead>
       <tbody ui-sortable ng-model="form.colorsList">
-      <tr ng-repeat="name in form.colorsList">
+      <tr ng-repeat="name in form.colorsList track by name">
         <td style="cursor: move;"><i class="fa fa-arrows-v"></i> <span
           ng-bind="options.seriesOptions[name].zIndex + 1"></span>
         </td>

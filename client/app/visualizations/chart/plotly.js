@@ -275,7 +275,11 @@ const PlotlyChart = () => {
             series.data.forEach((row) => {
               plotlySeries.values.push(row.y);
               plotlySeries.labels.push(hasX ? row.x : `Slice ${index}`);
-              plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x : `Slice ${index}`].color);
+              if (scope.options.seriesOptions[hasX ? row.x : `Slice ${index}`] === undefined) {
+                plotlySeries.marker.colors.push(getColor(index));
+                index += 1;
+              } else {
+                plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x : `Slice ${index}`].color);
             });
 
             scope.data.push(plotlySeries);
