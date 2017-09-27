@@ -60,6 +60,9 @@ def all_settings():
     return settings
 
 
+SESSION_COOKIE_SECURE = True
+
+
 NAME = os.environ.get('REDASH_NAME', 'Redash')
 LOGO_URL = os.environ.get('REDASH_LOGO_URL', '/images/redash_icon_small.png')
 
