@@ -31,6 +31,49 @@ function queryEditor(QuerySnippet) {
       pre($scope) {
         $scope.syntax = $scope.syntax || 'sql';
 
+        const schemaCompleter = {
+          getCompletions(state, session, pos, prefix, callback) {
+            // make a variable for the auto completion in the query editor
+            $scope.autoCompleteSchema = $scope.schema; // removeExtraSchemaInfo(
+
+            if (prefix.length === 0 || !$scope.autoCompleteSchema) {
+              callback(null, []);
+              return;
+            }
+
+            if (!$scope.autoCompleteSchema.keywords) {
+              const keywords = {};
+
+              $scope.autoCompleteSchema.forEach((table) => {
+                keywords[table.name] = 'Table';
+
+                table.columns.forEach((c) => { // autoCompleteColumns
+                  if (c.charAt(c.length - 1) === ')') {
+                    let parensStartAt = c.indexOf('(') - 1;
+                    c = c.substring(0, parensStartAt);
+                    parensStartAt = 1; // linter complains without this line
+                  }
+                  // remove '[P] ' for partition keys
+                  if (c.charAt(0) === '[') {
+                    c = c.substring(4, c.length);
+                  }
+                  // keywords[c] = 'Column'; // dups columns
+                  keywords[`${table.name}.${c}`] = 'Column';
+                });
+              });
+
+              $scope.autoCompleteSchema.keywords = map(keywords, (v, k) =>
+                ({
+                  name: k,
+                  value: k,
+                  score: 0,
+                  meta: v,
+                }));
+            }
+            callback(null, $scope.autoCompleteSchema.keywords);
+          },
+        };
+
         $scope.editorOptions = {
           mode: 'json',
           // require: ['ace/ext/language_tools'],
@@ -70,7 +113,7 @@ function queryEditor(QuerySnippet) {
               editor.getSession().setMode(newMode);
             });
 
-            $scope.$watch('schema', (newSchema, oldSchema) => {
+            $scope.$watch('autoCompleteSchema', (newSchema, oldSchema) => {
               if (newSchema !== oldSchema) {
                 if (newSchema === undefined) {
                   return;
@@ -80,8 +123,10 @@ function queryEditor(QuerySnippet) {
                 // as it makes typing slower.
                 if (tokensCount > 5000) {
                   editor.setOption('enableLiveAutocompletion', false);
+                  editor.setOption('enableBasicAutocompletion', false);
                 } else {
                   editor.setOption('enableLiveAutocompletion', true);
+                  editor.setOption('enableBasicAutocompletion', true);
                 }
               }
             });
