@@ -30,6 +30,9 @@
             <td>{{query.created_at | dateTime}}</td>
             <td>{{query.schedule | scheduleHumanize}}</td>
           </tr>
+          <tr ng-if="$ctrl.paginator.rows.length == 0">
+            <td>No results found.</td>
+          </tr>
         </tbody>
       </table>
       <paginator paginator="$ctrl.paginator"></paginator>
