@@ -281,12 +281,12 @@ const PlotlyChart = () => {
 
             series.data.forEach((row) => {
               plotlySeries.values.push(row.y);
-              plotlySeries.labels.push(hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`);
-              if (scope.options.seriesOptions[hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`] === undefined) {
+              plotlySeries.labels.push(hasX ? row.x.toString().substr(0, xAxisLabelLength) : `Slice ${index}`);
+              if (scope.options.seriesOptions[hasX ? row.x.toString().substr(0, xAxisLabelLength) : `Slice ${index}`] === undefined) {
                 plotlySeries.marker.colors.push(getColor(index));
                 index += 1;
               } else {
-                plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x.substr(0, xAxisLabelLength) : `Slice ${index}`].color);
+                plotlySeries.marker.colors.push(scope.options.seriesOptions[hasX ? row.x.toString().substr(0, xAxisLabelLength) : `Slice ${index}`].color);
               }
             });
 
