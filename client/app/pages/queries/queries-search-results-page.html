@@ -15,10 +15,10 @@
       <table class="table table-condensed table-hover">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Created By</th>
-            <th>Created At</th>
-            <th>Update Schedule</th>
+            <th class="sortable-column" ng-click="$ctrl.paginator.orderBy('name')">Name <sort-icon column="'name'" sort-column="$ctrl.paginator.orderByField" reverse="$ctrl.paginator.orderByReverse"></sort-icon></th>
+            <th class="sortable-column" ng-click="$ctrl.paginator.orderBy('created_by')">Created By <sort-icon column="'created_by'" sort-column="$ctrl.paginator.orderByField" reverse="$ctrl.paginator.orderByReverse"></sort-icon></th>
+            <th class="sortable-column" ng-click="$ctrl.paginator.orderBy('created_at')">Created At <sort-icon column="'created_at'" sort-column="$ctrl.paginator.orderByField" reverse="$ctrl.paginator.orderByReverse"></sort-icon></th>
+            <th class="sortable-column" ng-click="$ctrl.paginator.orderBy('schedule')">Update Schedule <sort-icon column="'schedule'" sort-column="$ctrl.paginator.orderByField" reverse="$ctrl.paginator.orderByReverse"></sort-icon></th>
           </tr>
         </thead>
         <tbody>
