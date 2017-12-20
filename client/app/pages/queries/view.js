@@ -185,13 +185,25 @@ function QueryViewCtrl(
       errorMessage: 'Query could not be saved',
     }, customOptions);
 
+    if (options.force) {
+      delete request.version;
+    }
+
     return Query.save(request, (updatedQuery) => {
       toastr.success(options.successMessage);
       $scope.query.version = updatedQuery.version;
     }, (error) => {
       if (error.status === 409) {
-        toastr.error('It seems like the query has been modified by another user. ' +
-          'Please copy/backup your changes and reload this page.', { autoDismiss: false });
+        // no way this code is going upstream
+        window.overwriteQuery = () => $scope.$apply(() => {
+          options.force = true;
+          $scope.saveQuery(options, data);
+        });
+        toastr.error(
+          'It seems like the query has been modified by another user. ' +
+            ($scope.isQueryOwner ? '<a href="#" onclick="overwriteQuery()">Overwrite anyway</a>?' : 'Please copy/backup your changes and reload this page.'),
+          { autoDismiss: false, allowHtml: true, timeout: 0 },
+        );
       } else {
         toastr.error(options.errorMessage);
       }
