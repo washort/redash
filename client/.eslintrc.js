@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  extends: "airbnb-base",
+  extends: "airbnb",
   settings: {
     "import/resolver": "webpack"
   },
@@ -23,6 +23,12 @@ module.exports = {
     "no-lonely-if": "off",
     "consistent-return": "off",
     "no-control-regex": "off",
+    "react/jsx-filename-extension": "off",
+    "react/jsx-uses-react": "error",
+    "react/jsx-uses-vars": "error",
+    "react/prefer-stateless-function": "warn",
+    "react/forbid-prop-types": "warn",
+    "react/prop-types": "warn",
     "max-len": ['error', 120, 2, {
       ignoreUrls: true,
       ignoreComments: false,
