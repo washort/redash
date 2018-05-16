@@ -1,6 +1,9 @@
+import { react2angular } from 'react2angular';
 import { pick, some, find, minBy, isObject } from 'lodash';
 import { SCHEMA_NOT_SUPPORTED, SCHEMA_LOAD_ERROR } from '@/services/data-source';
 import { getTags } from '@/services/tags';
+import QueryExecutionStatus from '@/react-components/QueryExecutionStatus';
+import QueryMetadata from '@/react-components/QueryMetadata';
 import template from './query.html';
 
 const DEFAULT_TAB = 'table';
@@ -439,21 +442,6 @@ function QueryViewCtrl(
     $scope.openVisualizationEditor();
   }
 
-  $scope.openScheduleForm = () => {
-    if (!$scope.canEdit || !$scope.canScheduleQuery) {
-      return;
-    }
-
-    $uibModal.open({
-      component: 'scheduleDialog',
-      size: 'sm',
-      resolve: {
-        query: $scope.query,
-        saveQuery: () => $scope.saveQuery,
-      },
-    });
-  };
-
   $scope.openAddToDashboardForm = (vis) => {
     $uibModal.open({
       component: 'addToDashboardDialog',
@@ -512,6 +500,15 @@ function QueryViewCtrl(
 }
 
 export default function init(ngModule) {
+  ngModule.component(
+    'queryExecutionButton',
+    react2angular(QueryExecutionStatus, null, ['Events']),
+  );
+  ngModule.component(
+    'queryMetadata',
+    react2angular(QueryMetadata, null, ['$uibModal']),
+  );
+
   ngModule.controller('QueryViewCtrl', QueryViewCtrl);
 
   return {
