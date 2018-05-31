@@ -3,6 +3,7 @@ import { react2angular } from 'react2angular';
 import { getColumnCleanName } from '@/services/query-result';
 import { createFormatter } from '@/lib/value-format';
 import TableEditorColumns from '@/react-components/TableEditorColumns';
+import GridEditor from '@/react-components/GridEditor';
 import template from './table.html';
 import editorTemplate from './table-editor.html';
 import './table-editor.less';
@@ -198,15 +199,7 @@ function GridEditor(clientConfig) {
         }
       });
 
-      const collectTableColumns = (newCols) => {
-        $scope.visualization.options.columns = _.map(
-          getColumnsOptions(
-            $scope.queryResult.getData() !== null ? $scope.queryResult.getColumns() : [],
-            newCols,
-          ),
-          col => _.extend(getDefaultFormatOptions(col, clientConfig), col),
-        );
-      };
+      const
       collectTableColumns($scope.visualization.options.columns);
       $scope.updateColumns = newCols => $scope.$apply(() => collectTableColumns(newCols));
       $scope.templateHint = `
@@ -220,7 +213,7 @@ function GridEditor(clientConfig) {
 
 export default function init(ngModule) {
   ngModule.directive('gridRenderer', GridRenderer);
-  ngModule.directive('gridEditor', GridEditor);
+  ngModule.component('gridEditor', GridEditor);
   ngModule.component('tableEditorColumns', react2angular(TableEditorColumns));
   ngModule.config((VisualizationProvider) => {
     const defaultOptions = DEFAULT_OPTIONS;
@@ -229,7 +222,7 @@ export default function init(ngModule) {
       type: 'TABLE',
       name: 'Table',
       renderTemplate: '<grid-renderer options="visualization.options" query-result="queryResult"></grid-renderer>',
-      editorTemplate: '<grid-editor></grid-editor>',
+      editorTemplate: '<grid-editor visualization="visualization" updateVisualization="updateVisualization" query-result="queryResult"></grid-editor>',
       defaultOptions,
     });
   });

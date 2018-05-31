@@ -112,6 +112,9 @@ function VisualizationOptionsEditor(Visualization) {
       query: '=',
       queryResult: '=',
     },
+    link: ($scope) => {
+      $scope.updateVisualization = (vis) => { $scope.visualization = vis };
+    }
   };
 }
 
