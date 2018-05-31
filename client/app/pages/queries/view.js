@@ -1,4 +1,4 @@
-import { pick, any, some, find, min, isObject } from 'underscore';
+import { pick, any, some, find, min, isObject } from 'lodash';
 import { SCHEMA_NOT_SUPPORTED, SCHEMA_LOAD_ERROR } from '@/services/data-source';
 import template from './query.html';
 
@@ -443,7 +443,7 @@ function QueryViewCtrl(
     (hash) => {
       // eslint-disable-next-line eqeqeq
       const exists = find($scope.query.visualizations, item => item.id == hash);
-      let visualization = min($scope.query.visualizations, viz => viz.id);
+      let visualization = minBy($scope.query.visualizations, viz => viz.id);
       if (!isObject(visualization)) {
         visualization = {};
       }

@@ -1,4 +1,4 @@
-import { pluck } from 'underscore';
+import { pluck } from 'lodash';
 import { copy } from 'angular';
 import template from './edit-visualization-dialog.html';
 import './edit-visualization-dialog.css';

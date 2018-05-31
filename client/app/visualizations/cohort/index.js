@@ -1,5 +1,5 @@
 /* global Cornelius */
-import _ from 'underscore';
+import _ from 'lodash';
 import moment from 'moment';
 import 'cornelius/src/cornelius';
 import 'cornelius/src/cornelius.css';
@@ -152,10 +152,10 @@ function cohortRenderer() {
 
         const columnNames = _.pluck($scope.queryResult.getColumns(), 'name');
         if (
-          !_.contains(columnNames, $scope.options.dateColumn) ||
-          !_.contains(columnNames, $scope.options.stageColumn) ||
-          !_.contains(columnNames, $scope.options.totalColumn) ||
-          !_.contains(columnNames, $scope.options.valueColumn)
+          !_.includes(columnNames, $scope.options.dateColumn) ||
+          !_.includes(columnNames, $scope.options.stageColumn) ||
+          !_.includes(columnNames, $scope.options.totalColumn) ||
+          !_.includes(columnNames, $scope.options.valueColumn)
         ) {
           return;
         }

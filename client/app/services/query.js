@@ -1,7 +1,7 @@
 import moment from 'moment';
 import debug from 'debug';
 import Mustache from 'mustache';
-import { each, object, isEmpty, pluck, filter, contains, union, uniq, has } from 'underscore';
+import { each, zipObject, isEmpty, pluck, filter, includes, union, uniq, has } from 'lodash';
 
 const logger = debug('redash:services:query');
 
@@ -135,7 +135,7 @@ class Parameters {
       }
     });
 
-    const parameterExists = p => contains(parameterNames, p.name);
+    const parameterExists = p => includes(parameterNames, p.name);
     this.query.options.parameters = this.query.options.parameters
       .filter(parameterExists)
       .map(p => new Parameter(Object.assign({ queryId: this.query.id }, p)));
@@ -165,7 +165,7 @@ class Parameters {
 
   getValues() {
     const params = this.get();
-    return object(pluck(params, 'name'), pluck(params, 'value'));
+    return zipObject(pluck(params, 'name'), pluck(params, 'value'));
   }
 }
 

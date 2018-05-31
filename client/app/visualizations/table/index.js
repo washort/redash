@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 import { getColumnCleanName } from '@/services/query-result';
 import { createFormatter } from '@/lib/value-format';
 import template from './table.html';

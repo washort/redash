@@ -1,7 +1,7 @@
 import {
-  some, extend, has, partial, intersection, without, contains, isUndefined,
+  some, extend, has, partial, intersection, without, includes, isUndefined,
   sortBy, each, pluck, keys, difference,
-} from 'underscore';
+} from 'lodash';
 import template from './chart.html';
 import editorTemplate from './chart-editor.html';
 
@@ -113,10 +113,10 @@ function ChartEditor(ColorPalette, clientConfig) {
           return;
         }
         scope.form.yAxisColumns = intersection(scope.form.yAxisColumns, scope.columnNames);
-        if (!contains(scope.columnNames, scope.form.xAxisColumn)) {
+        if (!includes(scope.columnNames, scope.form.xAxisColumn)) {
           scope.form.xAxisColumn = undefined;
         }
-        if (!contains(scope.columnNames, scope.form.groupby)) {
+        if (!includes(scope.columnNames, scope.form.groupby)) {
           scope.form.groupby = undefined;
         }
       }
@@ -265,7 +265,7 @@ function ChartEditor(ColorPalette, clientConfig) {
 
       if (scope.columnNames) {
         each(scope.options.columnMapping, (value, key) => {
-          if (scope.columnNames.length > 0 && !contains(scope.columnNames, key)) {
+          if (scope.columnNames.length > 0 && !includes(scope.columnNames, key)) {
             return;
           }
           if (value === 'x') {

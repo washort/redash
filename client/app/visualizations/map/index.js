@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 import d3 from 'd3';
 import L from 'leaflet';
 import 'leaflet.markercluster';
@@ -193,7 +193,7 @@ function mapRenderer() {
             return { color: colorScale(group) };
           });
 
-          $scope.visualization.options.groups = _.object(groupNames, options);
+          $scope.visualization.options.groups = _.zipObject(groupNames, options);
 
           _.each(layers, (v) => {
             removeLayer(v);

@@ -1,7 +1,7 @@
 import {
-  isArray, isNumber, isString, isUndefined, contains, min, max, has, find,
+  isArray, isNumber, isString, isUndefined, includes, min, max, has, find,
   each, values, sortBy, pluck, identity, filter, map,
-} from 'underscore';
+} from 'lodash';
 import moment from 'moment';
 import { createFormatter } from '@/lib/value-format';
 
@@ -146,7 +146,7 @@ function calculateDimensions(series, options) {
   const xPadding = 0.02;
   const yPadding = 0.1;
 
-  const hasX = contains(values(options.columnMapping), 'x');
+  const hasX = includes(values(options.columnMapping), 'x');
   const hasY2 = !!find(series, (serie) => {
     const seriesOptions = options.seriesOptions[serie.name] || { type: options.globalSeriesType };
     return (seriesOptions.yAxis === 1) && (
