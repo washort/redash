@@ -40,6 +40,10 @@ function QuerySourceCtrl(
 
   $scope.canForkQuery = () => currentUser.hasPermission('edit_query') && !$scope.dataSource.view_only;
 
+  $scope.updateQuery = (newQueryText) => {
+    $scope.query.query = newQueryText;
+  };
+
   // @override
   $scope.saveQuery = (options, data) => {
     const savePromise = saveQuery(options, data);
@@ -69,6 +73,10 @@ function QuerySourceCtrl(
   $scope.toggleAutocompleteQuery = () => {
     $scope.autocompleteQuery = !$scope.autocompleteQuery;
    };
+
+  $scope.listenForResize = (f) => {
+    $scope.$on('angular-resizable.resizing', f);
+  };
 
   $scope.$watch('query.query', (newQueryText) => {
     $scope.isDirty = (newQueryText !== queryText);
