@@ -2,77 +2,15 @@ import {
   some, extend, defaults, has, partial, intersection, without, includes, isUndefined,
   sortBy, each, map, keys, difference,
 } from 'lodash';
+import React from 'react';
 import { react2angular } from 'react2angular';
 
-import ChartSeriesEditor from '@/react-components/ChartSeriesEditor';
-import ChartColorEditor from '@/react-components/ChartColorEditor';
-import template from './chart.html';
+import ChartEditor from '@/react-components/ChartEditor';
+import ChartRenderer from '@/react-components/ChartRenderer';
 import editorTemplate from './chart-editor.html';
 
-const DEFAULT_OPTIONS = {
-  globalSeriesType: 'column',
-  sortX: true,
-  legend: { enabled: true },
-  yAxis: [{ type: 'linear' }, { type: 'linear', opposite: true }],
-  xAxis: { type: '-', labels: { enabled: true } },
-  error_y: { type: 'data', visible: true },
-  series: { stacking: null, error_y: { type: 'data', visible: true } },
-  seriesOptions: {},
-  columnMapping: {},
-
-  // showDataLabels: false, // depends on chart type
-  numberFormat: '0,0[.]00000',
-  percentFormat: '0[.]00%',
-  // dateTimeFormat: 'DD/MM/YYYY HH:mm', // will be set from clientConfig
-  textFormat: '', // default: combination of {{ @@yPercent }} ({{ @@y }} ± {{ @@yError }})
-
-  defaultColumns: 3,
-  defaultRows: 8,
-  minColumns: 1,
-  minRows: 5,
-};
-
-function ChartRenderer() {
-  return {
-    restrict: 'E',
-    scope: {
-      queryResult: '=',
-      options: '=?',
-    },
-    template,
-    replace: false,
-    controller($scope, clientConfig) {
-      $scope.chartSeries = [];
-
-      function zIndexCompare(series) {
-        if ($scope.options.seriesOptions[series.name]) {
-          return $scope.options.seriesOptions[series.name].zIndex;
-        }
-        return 0;
-      }
-
-      function reloadData() {
-        if (!isUndefined($scope.queryResult) && $scope.queryResult.getData()) {
-          const data = $scope.queryResult.getChartData($scope.options.columnMapping);
-          $scope.chartSeries = sortBy(data, zIndexCompare);
-        }
-      }
-
-      function reloadChart() {
-        reloadData();
-        $scope.plotlyOptions = extend({
-          showDataLabels: $scope.options.globalSeriesType === 'pie',
-          dateTimeFormat: clientConfig.dateTimeFormat,
-        }, DEFAULT_OPTIONS, $scope.options);
-      }
-
-      $scope.$watch('options', reloadChart, true);
-      $scope.$watch('queryResult && queryResult.getData()', reloadData);
-    },
-  };
-}
-
-function ChartEditor(ColorPalette, clientConfig) {
+// eslint-disable-next-line no-unused-vars
+function OldChartEditor(clientConfig) {
   return {
     restrict: 'E',
     template: editorTemplate,
@@ -81,70 +19,6 @@ function ChartEditor(ColorPalette, clientConfig) {
       options: '=?',
     },
     link(scope) {
-      scope.currentTab = 'general';
-      scope.colors = extend({ Automatic: null }, ColorPalette);
-
-      scope.stackingOptions = {
-        Disabled: null,
-        Stack: 'stack',
-      };
-
-      scope.changeTab = (tab) => {
-        scope.currentTab = tab;
-      };
-
-      scope.chartTypes = {
-        line: { name: 'Line', icon: 'line-chart' },
-        column: { name: 'Bar', icon: 'bar-chart' },
-        area: { name: 'Area', icon: 'area-chart' },
-        pie: { name: 'Pie', icon: 'pie-chart' },
-        scatter: { name: 'Scatter', icon: 'circle-o' },
-        bubble: { name: 'Bubble', icon: 'circle-o' },
-        box: { name: 'Box', icon: 'square-o' },
-      };
-
-      if (clientConfig.allowCustomJSVisualizations) {
-        scope.chartTypes.custom = { name: 'Custom', icon: 'code' };
-      }
-
-      scope.xAxisScales = [
-        { label: 'Auto Detect', value: '-' },
-        { label: 'Datetime', value: 'datetime' },
-        { label: 'Linear', value: 'linear' },
-        { label: 'Logarithmic', value: 'logarithmic' },
-        { label: 'Category', value: 'category' },
-      ];
-      scope.yAxisScales = ['linear', 'logarithmic', 'datetime', 'category'];
-
-      scope.chartTypeChanged = () => {
-        keys(scope.options.seriesOptions).forEach((key) => {
-          scope.options.seriesOptions[key].type = scope.options.globalSeriesType;
-        });
-        scope.options.showDataLabels = scope.options.globalSeriesType === 'pie';
-        scope.$applyAsync();
-      };
-
-      scope.showSizeColumnPicker = () => some(scope.options.seriesOptions, options => options.type === 'bubble');
-
-      scope.updateSeriesList = (s) => {
-        scope.form.seriesList = s;
-      };
-
-      scope.updateColorsList = (c) => {
-        scope.$apply(() => { scope.form.colorsList = c; });
-      };
-
-      scope.updateSeriesOptions = (opts) => {
-        scope.$apply(() => { scope.options.seriesOptions = opts; });
-      };
-
-      if (scope.options.customCode === undefined) {
-        scope.options.customCode = `// Available variables are x, ys, element, and Plotly
-// Type console.log(x, ys); for more info about x and ys
-// To plot your graph call Plotly.plot(element, ...)
-// Plotly examples and docs: https://plot.ly/javascript/`;
-      }
-
       function refreshColumns() {
         scope.columns = scope.queryResult.getColumns();
         scope.columnNames = map(scope.columns, i => i.name);
@@ -357,22 +231,24 @@ function ChartEditor(ColorPalette, clientConfig) {
   };
 }
 
-const ColorBox = {
-  bindings: {
-    color: '<',
-  },
-  template: "<span style='width: 12px; height: 12px; background-color: {{$ctrl.color}}; display: inline-block; margin-right: 5px;'></span>",
-};
+const ColorBox = props => (
+  <span style={{
+    width: 12,
+    height: 12,
+    'background-color': props.color,
+    display: 'inline-block',
+    'margin-right': 5,
+    }}
+  />
+);
 
 export default function init(ngModule) {
-  ngModule.component('colorBox', ColorBox);
-  ngModule.component('chartSeriesEditor', react2angular(ChartSeriesEditor, null, ['ColorPalette']));
-  ngModule.component('chartColorEditor', react2angular(ChartColorEditor, null, ['ColorPalette']));
-  ngModule.directive('chartRenderer', ChartRenderer);
-  ngModule.directive('chartEditor', ChartEditor);
+  ngModule.component('colorBox', react2angular(ColorBox));
+  ngModule.component('chartRenderer', react2angular(ChartRenderer, null, ['clientConfig']));
+  ngModule.component('chartEditor', react2angular(ChartEditor, null, ['clientConfig']));
   ngModule.config((VisualizationProvider) => {
     const renderTemplate = '<chart-renderer options="visualization.options" query-result="queryResult"></chart-renderer>';
-    const editTemplate = '<chart-editor options="visualization.options" query-result="queryResult"></chart-editor>';
+    const editTemplate = '<chart-editor visualization="visualization" update-visualization="updateVisualization" query-result="queryResult"></chart-editor>';
 
     VisualizationProvider.registerVisualization({
       type: 'CHART',
