@@ -82,21 +82,6 @@ export default class QueryEditor extends React.Component {
     dataSources: [],
   }
 
-  static getDerivedStateFromProps(nextProps, prevState) {
-    if (!nextProps.schema) {
-      return { ...prevState, keywords: [], autocompleteQuery: false };
-    } else if (nextProps.schema !== prevState.schema) {
-      return {
-        ...prevState,
-        schema: nextProps.schema,
-        keywords: buildKeywordsFromSchema(nextProps.schema),
-        autocompleteQuery: (nextProps.schema.reduce((totalLength, table) =>
-          totalLength + table.columns.length, 0) <= 5000 && nextProps.autocompleteQuery),
-      };
-    }
-    return prevState;
-  }
-
   constructor(props) {
     super(props);
     this.refEditor = React.createRef();
@@ -151,6 +136,21 @@ export default class QueryEditor extends React.Component {
         .then((queryText) => { this.props.updateQuery(queryText); this.setState({ queryText }); })
         .catch(error => this.props.toastr.error(error));
     };
+  }
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (!nextProps.schema) {
+      return { ...prevState, keywords: [], autocompleteQuery: false };
+    } else if (nextProps.schema !== prevState.schema) {
+      return {
+        ...prevState,
+        schema: nextProps.schema,
+        keywords: buildKeywordsFromSchema(nextProps.schema),
+        autocompleteQuery: (nextProps.schema.reduce((totalLength, table) =>
+          totalLength + table.columns.length, 0) <= 5000 && nextProps.autocompleteQuery),
+      };
+    }
+    return prevState;
   }
 
   render() {
