@@ -596,7 +596,7 @@ class DataSource(BelongsToOrgMixin, db.Model):
             'syntax': self.query_runner.syntax,
             'paused': self.paused,
             'pause_reason': self.pause_reason,
-            'type_name': self.query_runner.name(),
+            'type_name': self.query_runner.name()
         }
 
         schema = get_configuration_schema_for_query_runner_type(self.type)
@@ -685,8 +685,6 @@ class DataSource(BelongsToOrgMixin, db.Model):
         dsg = DataSourceGroup(group=group, data_source=self, view_only=view_only)
         db.session.add(dsg)
         return dsg
-
-        setattr(self, 'data_source_groups', dsg)
 
     def remove_group(self, group):
         db.session.query(DataSourceGroup).filter(
