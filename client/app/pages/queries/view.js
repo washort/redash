@@ -524,7 +524,7 @@ export default function init(ngModule) {
 
   return {
     '/queries/:queryId': {
-      template: ({ queryId }) => `<query-view-top query-id="${queryId}" source-mode="false" $on="$on" />`,
+      template: ({ queryId }) => `<query-view-top query-id="${queryId}" source-mode="false" />`,
       layout: 'fixed',
       reloadOnSearch: false,
     },

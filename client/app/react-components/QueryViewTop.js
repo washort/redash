@@ -2,13 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect, PromiseState } from 'react-refetch';
 import QueryViewHeader from './QueryViewHeader';
+import QueryViewNav from './QueryViewNav';
 import AlertUnsavedChanges from './AlertUnsavedChanges';
 
 class QueryViewTop extends React.Component {
   static propTypes = {
     // queryId: PropTypes.number.isRequired,
     query: PropTypes.instanceOf(PromiseState).isRequired,
-    updateQuery: PropTypes.func.isRequired,
+    saveQuery: PropTypes.func.isRequired,
+    saveQueryResponse: PropTypes.instanceOf(PromiseState).isRequired,
     dataSources: PropTypes.instanceOf(PromiseState),
     sourceMode: PropTypes.bool.isRequired,
     $rootScope: PropTypes.object.isRequired,
@@ -22,15 +24,28 @@ class QueryViewTop extends React.Component {
     super(props);
     this.state = {
       isDirty: false,
+      query: null,
     };
   }
+
+  static getDerivedStateFromProps(newProps, oldState) {
+    // create shallow copy of query contents once loaded
+    if (!oldState.query && newProps.query.fulfilled) {
+      return { query: { ...newProps.query.value } };
+    }
+    return null;
+  }
+
 
   // XXX tied to angular routing
   onChangeLocation = cb => this.props.$rootScope.$on('$locationChangeStart', cb);
 
-  updateQuery = (changes) => {
-    const newQuery = Object.assign({}, this.props.query, changes);
-    this.props.updateQuery(newQuery);
+  updateQuery = changes => this.setState(Object.assign({}, this.state.query, changes))
+  updateAndSaveQuery = (changes) => {
+    const query = Object.assign({}, this.state.query, changes);
+    this.setState({ query });
+    this.props.saveQuery(query);
+    // XXX toastr for success/failure, probably in refetch bits
   }
 
   render() {
@@ -46,7 +61,7 @@ class QueryViewTop extends React.Component {
         {canEdit ? <AlertUnsavedChanges isDirty={this.state.isDirty} onChangeLocation={this.onChangeLocation} /> : ''}
         <QueryViewHeader
           query={query}
-          updateQuery={this.updateQuery}
+          updateQuery={this.updateAndSaveQuery}
           currentUser={this.props.currentUser}
           hasDataSources={dataSources.length > 0}
           dataSource={dataSource}
@@ -56,6 +71,7 @@ class QueryViewTop extends React.Component {
           showPermissionsControl={this.props.clientConfig.showPermissionsControl}
           Events={this.props.Events}
         />
+        <QueryViewMain />
       </div>
     );
   }
@@ -76,9 +92,9 @@ function fetchQuery(props) {
           },
         }),
       },
-      updateQuery: newQuery => ({
+      saveQuery: newQuery => ({
         query: { value: newQuery },
-        updateQueryResponse: {
+        saveQueryResponse: {
           url: `${props.clientConfig.basePath}api/queries/${props.queryId}`,
           method: 'POST',
           body: newQuery,
