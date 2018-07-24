@@ -25,6 +25,8 @@ class QueryViewTop extends React.Component {
     this.state = {
       isDirty: false,
       query: null,
+      // XXX get this with refetch?
+      latestQueryData: null,
     };
   }
 
@@ -48,14 +50,40 @@ class QueryViewTop extends React.Component {
     // XXX toastr for success/failure, probably in refetch bits
   }
 
+  getDataSource = () => {
+    // Try to get the query's data source id
+    let dataSourceId = this.props.query.data_source_id;
+
+    // If there is no source yet, then parse what we have in localStorage
+    //   e.g. `null` -> `NaN`, malformed data -> `NaN`, "1" -> 1
+    if (dataSourceId === undefined) {
+      dataSourceId = parseInt(localStorage.lastSelectedDataSourceId, 10);
+    }
+
+    const dataSource = find(this.props.dataSources, ds => ds.id === dataSourceId);
+    // If we had an invalid value in localStorage (e.g. nothing, deleted source),
+    // then use the first data source
+
+    return dataSource || this.props.dataSources[0];
+
+  }
+
+  setDataSource = (dataSource) => {
+    this.props.Events.record('update_data_source', 'query', this.props.query.id);
+    localStorage.lastSelectedDataSourceId = query.data_source_id;
+    this.setState({ latestQueryData: null });
+    (this.props.query.id ? this.props.updateAndSaveQuery : this.props.updateQuery)({ data_source_id: dataSource.id, latest_query_data_id: null });
+  }
+
   render() {
     if (!(this.props.query.fulfilled && this.props.dataSources && this.props.dataSources.fulfilled)) {
       return null;
     }
     const query = this.props.query.value;
     const dataSources = this.props.dataSources.value;
-    const dataSource = find(dataSources, ds => ds.id === query.data_source_id);
+    const dataSource = this.getDataSource();
     const canEdit = this.props.currentUser.canEdit(query) || query.can_edit;
+    const isQueryOwner = this.props.currentUser.id === this.props.query.user.id || this.props.currentUser.hasPermission('admin');
     return (
       <div className="query-page-wrapper">
         {canEdit ? <AlertUnsavedChanges isDirty={this.state.isDirty} onChangeLocation={this.onChangeLocation} /> : ''}
@@ -71,7 +99,14 @@ class QueryViewTop extends React.Component {
           showPermissionsControl={this.props.clientConfig.showPermissionsControl}
           Events={this.props.Events}
         />
-        <QueryViewMain />
+        <QueryViewMain
+          basePath={this.props.basePath}
+          query={this.props.query}
+          dataSource={dataSource}
+          dataSources={this.props.dataSources}
+          sourceMode={this.props.sourceMode}
+          isQueryOwner={isQueryOwner}
+        />
       </div>
     );
   }

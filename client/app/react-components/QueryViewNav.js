@@ -7,44 +7,30 @@ import { connect, PromiseState } from 'react-refetch';
 import QueryMetadata from './QueryMetadata';
 import SchemaBrowser from './SchemaBrowser';
 
-class QueryViewNav extends React.Component {
+export default class QueryViewNav extends React.Component {
   static propTypes = {
+    query: PropTypes.object.isRequired,
+    updateQuery: PropTypes.func.isRequired,
+    isQueryOwner: PropTypes.bool.isRequired,
     dataSource: PropTypes.object.isRequired,
     dataSourceVersion: PropTypes.instanceOf(PromiseState).isRequired,
     dataSources: PropTypes.object.isRequired,
     sourceMode: PropTypes.bool.isRequired,
     setDataSource: PropTypes.func.isRequired,
+    schema: PropTypes.instanceOf(PromiseState).isRequired,
+    refreshSchema: PropTypes.func.isRequired,
   }
-
-
-  getSchema(refresh) {
-    this.props.dataSource.getSchema(refresh).then((data) => {
-      if (data.schema) {
-        this.setState({ schema: data.schema });
-      } else if (data.error.code === SCHEMA_NOT_SUPPORTED) {
-        this.setState({ schema: undefined });
-      } else if (data.error.code === SCHEMA_LOAD_ERROR) {
-        toastr.error('Schema refresh failed. Please try again later.');
-      } else {
-        toastr.error('Schema refresh failed. Please try again later.');
-      }
-    });
-  }
-
-  refreshSchema = () => this.getSchema(true);
 
 
   render() {
-    if (!this.props.dataSourceVersion.fulfilled) return null;
-
-    const dataSourceVersionMsg = this.props.dataSourceVersion.value.message;
+    const dataSourceVersionMsg = this.props.dataSourceVersion.fulfilled ? this.props.dataSourceVersion.value.message : '';
     return (
       <nav resizable r-directions="['right']" r-flex="true" resizable-toggle>
         <div className="editor__left__data-source">
           <Select
             value={this.props.dataSource}
             onChange={this.setDataSource}
-            disabled={!this.isQueryOwner || !this.sourceMode}
+            disabled={!this.isQueryOwner || !this.props.sourceMode}
             placeholder="Select Data Source..."
             options={this.props.dataSources.map(d => ({ value: d.id, label: d.name }))}
           />
@@ -76,13 +62,3 @@ class QueryViewNav extends React.Component {
     );
   }
 }
-
-function fetchDataSourceVersion(props) {
-  return {
-    dataSourceVersion: {
-      url: `${props.basePath}api/data_sources/${props.query.data_source_id}/version`,
-    },
-  };
-}
-
-export default connect(fetchDataSourceVersion)(QueryViewNav);
