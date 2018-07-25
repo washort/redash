@@ -9,6 +9,7 @@ import SchemaBrowser from './SchemaBrowser';
 
 export default class QueryViewMain extends React.Component {
   static propTypes = {
+    canEdit: PropTypes.bool.isRequired,
     query: PropTypes.object.isRequired,
     updateQuery: PropTypes.func.isRequired,
     isQueryOwner: PropTypes.bool.isRequired,
@@ -26,6 +27,7 @@ export default class QueryViewMain extends React.Component {
     return (
       <main className="query-fullscreen">
         <QueryViewNav
+          canEdit={this.props.canEdit}
           query={this.props.query}
           isQueryOwner={this.props.isQueryOwner}
           updateQuery={this.props.updateQuery}

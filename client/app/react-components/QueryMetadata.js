@@ -16,8 +16,6 @@ export default class QueryMetadata extends React.Component {
     saveQuery: PropTypes.func.isRequired,
     canEdit: PropTypes.bool.isRequired,
     canScheduleQuery: PropTypes.bool.isRequired,
-    // XXX temp hack
-    schedule: PropTypes.string, // eslint-disable-line react/require-default-props
   };
   constructor(props) {
     super(props);

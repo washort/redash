@@ -100,12 +100,13 @@ class QueryViewTop extends React.Component {
           Events={this.props.Events}
         />
         <QueryViewMain
+          currentUser={this.props.currentUser}
+          canEdit={canEdit}
           basePath={this.props.basePath}
           query={this.props.query}
           dataSource={dataSource}
           dataSources={this.props.dataSources}
           sourceMode={this.props.sourceMode}
-          isQueryOwner={isQueryOwner}
         />
       </div>
     );

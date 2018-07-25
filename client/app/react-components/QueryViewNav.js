@@ -9,9 +9,9 @@ import SchemaBrowser from './SchemaBrowser';
 
 export default class QueryViewNav extends React.Component {
   static propTypes = {
+    currentUser: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     updateQuery: PropTypes.func.isRequired,
-    isQueryOwner: PropTypes.bool.isRequired,
     dataSource: PropTypes.object.isRequired,
     dataSourceVersion: PropTypes.instanceOf(PromiseState).isRequired,
     dataSources: PropTypes.object.isRequired,
@@ -55,7 +55,6 @@ export default class QueryViewNav extends React.Component {
           saveQuery={this.saveQuery}
           canEdit={this.canEdit}
           canScheduleQuery={this.canScheduleQuery}
-          schedule={this.props.query.schedule}
         />
       </nav>
 
