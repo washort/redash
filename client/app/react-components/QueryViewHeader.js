@@ -8,12 +8,15 @@ import Overlay from './Overlay';
 
 export default class QueryViewHeader extends React.Component {
   static propTypes = {
-    query: PropTypes.object.isRequired,
-    hasDataSources: PropTypes.bool.isRequired,
-    sourceMode: PropTypes.bool.isRequired,
     canEdit: PropTypes.bool.isRequired,
-    showPermissionsControl: PropTypes.bool.isRequired,
+    query: PropTypes.object.isRequired,
     updateQuery: PropTypes.func.isRequired,
+    currentUser: PropTypes.object.isRequired,
+    hasDataSources: PropTypes.bool.isRequired,
+    dataSource: PropTypes.object.isRequired,
+    sourceMode: PropTypes.bool.isRequired,
+    showPermissionsControl: PropTypes.bool.isRequired,
+    Events: PropTypes.object.isRequired,
   }
 
   saveName = name => name;

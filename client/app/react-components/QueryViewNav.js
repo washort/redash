@@ -2,16 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import 'react-select/dist/react-select.css';
-import { connect, PromiseState } from 'react-refetch';
+import { PromiseState } from 'react-refetch';
 
 import QueryMetadata from './QueryMetadata';
 import SchemaBrowser from './SchemaBrowser';
 
 export default class QueryViewNav extends React.Component {
   static propTypes = {
+    canEdit: PropTypes.bool.isRequired,
     currentUser: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
-    updateQuery: PropTypes.func.isRequired,
+    updateAndSaveQuery: PropTypes.func.isRequired,
     dataSource: PropTypes.object.isRequired,
     dataSourceVersion: PropTypes.instanceOf(PromiseState).isRequired,
     dataSources: PropTypes.object.isRequired,
@@ -19,18 +20,23 @@ export default class QueryViewNav extends React.Component {
     setDataSource: PropTypes.func.isRequired,
     schema: PropTypes.instanceOf(PromiseState).isRequired,
     refreshSchema: PropTypes.func.isRequired,
+    editorPaste: PropTypes.func.isRequired,
   }
 
 
   render() {
     const dataSourceVersionMsg = this.props.dataSourceVersion.fulfilled ? this.props.dataSourceVersion.value.message : '';
+    const canScheduleQuery = this.props.currentUser.has_permission('schedule_query');
+    const isQueryOwner = (this.props.currentUser.id === this.props.query.user.id ||
+                          this.props.currentUser.hasPermission('admin'));
+
     return (
       <nav resizable r-directions="['right']" r-flex="true" resizable-toggle>
         <div className="editor__left__data-source">
           <Select
             value={this.props.dataSource}
-            onChange={this.setDataSource}
-            disabled={!this.isQueryOwner || !this.props.sourceMode}
+            onChange={this.props.setDataSource}
+            disabled={!isQueryOwner || !this.props.sourceMode}
             placeholder="Select Data Source..."
             options={this.props.dataSources.map(d => ({ value: d.id, label: d.name }))}
           />
@@ -41,10 +47,10 @@ export default class QueryViewNav extends React.Component {
         {this.props.sourceMode ?
           <div className="editor__left__schema">
             <SchemaBrowser
-              schema={this.props.dataSource.schema}
+              schema={this.props.schema}
               tableToggleString={this.props.dataSource.options.toggle_table_string}
-              onRefresh={this.refreshSchema}
-              editorPaste={this.editorPaste}
+              onRefresh={this.props.refreshSchema}
+              editorPaste={this.props.editorPaste}
             />
           </div> :
           <div style={{ 'flex-grow': 1 }}>&nbsp;</div>
@@ -52,9 +58,9 @@ export default class QueryViewNav extends React.Component {
         <QueryMetadata
           mobile={false}
           query={this.props.query}
-          saveQuery={this.saveQuery}
-          canEdit={this.canEdit}
-          canScheduleQuery={this.canScheduleQuery}
+          saveQuery={this.props.updateAndSaveQuery}
+          canEdit={this.props.canEdit}
+          canScheduleQuery={canScheduleQuery}
         />
       </nav>
 

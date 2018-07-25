@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect, PromiseState } from 'react-refetch';
+import ToastContainer from 'react-toastr';
 import QueryViewHeader from './QueryViewHeader';
-import QueryViewNav from './QueryViewNav';
+import QueryViewMain from './QueryViewMain';
 import AlertUnsavedChanges from './AlertUnsavedChanges';
 
 class QueryViewTop extends React.Component {
@@ -22,6 +23,7 @@ class QueryViewTop extends React.Component {
 
   constructor(props) {
     super(props);
+    this.toastRef = this.createRef();
     this.state = {
       isDirty: false,
       query: null,
@@ -42,13 +44,6 @@ class QueryViewTop extends React.Component {
   // XXX tied to angular routing
   onChangeLocation = cb => this.props.$rootScope.$on('$locationChangeStart', cb);
 
-  updateQuery = changes => this.setState(Object.assign({}, this.state.query, changes))
-  updateAndSaveQuery = (changes) => {
-    const query = Object.assign({}, this.state.query, changes);
-    this.setState({ query });
-    this.props.saveQuery(query);
-    // XXX toastr for success/failure, probably in refetch bits
-  }
 
   getDataSource = () => {
     // Try to get the query's data source id
@@ -65,15 +60,27 @@ class QueryViewTop extends React.Component {
     // then use the first data source
 
     return dataSource || this.props.dataSources[0];
-
   }
 
   setDataSource = (dataSource) => {
     this.props.Events.record('update_data_source', 'query', this.props.query.id);
-    localStorage.lastSelectedDataSourceId = query.data_source_id;
+    localStorage.lastSelectedDataSourceId = this.props.query.data_source_id;
     this.setState({ latestQueryData: null });
-    (this.props.query.id ? this.props.updateAndSaveQuery : this.props.updateQuery)({ data_source_id: dataSource.id, latest_query_data_id: null });
+    (this.props.query.id ? this.updateAndSaveQuery : this.updateQuery)({
+      data_source_id: dataSource.id,
+      latest_query_data_id: null,
+    });
   }
+
+  updateAndSaveQuery = (changes) => {
+    const query = Object.assign({}, this.state.query, changes);
+    this.setState({ query });
+    this.props.saveQuery(query).then(() =>
+      this.toastRef.current.success('Query saved')).catch(() =>
+      this.toastRef.current.error('Query could not be saved'));
+  }
+
+  updateQuery = changes => this.setState(Object.assign({}, this.state.query, changes))
 
   render() {
     if (!(this.props.query.fulfilled && this.props.dataSources && this.props.dataSources.fulfilled)) {
@@ -82,30 +89,31 @@ class QueryViewTop extends React.Component {
     const query = this.props.query.value;
     const dataSources = this.props.dataSources.value;
     const dataSource = this.getDataSource();
-    const canEdit = this.props.currentUser.canEdit(query) || query.can_edit;
-    const isQueryOwner = this.props.currentUser.id === this.props.query.user.id || this.props.currentUser.hasPermission('admin');
+    const canEdit = this.props.currentUser.canEdit(this.props.query) || this.props.query.can_edit;
     return (
       <div className="query-page-wrapper">
         {canEdit ? <AlertUnsavedChanges isDirty={this.state.isDirty} onChangeLocation={this.onChangeLocation} /> : ''}
+        <ToastContainer ref={this.toastRef} className="toast" />
         <QueryViewHeader
+          canEdit={canEdit}
           query={query}
           updateQuery={this.updateAndSaveQuery}
           currentUser={this.props.currentUser}
           hasDataSources={dataSources.length > 0}
           dataSource={dataSource}
           sourceMode={this.props.sourceMode}
-          canEdit={canEdit}
-          isDirty={this.state.isDirty}
           showPermissionsControl={this.props.clientConfig.showPermissionsControl}
           Events={this.props.Events}
         />
         <QueryViewMain
-          currentUser={this.props.currentUser}
           canEdit={canEdit}
+          currentUser={this.props.currentUser}
           basePath={this.props.basePath}
           query={this.props.query}
+          updateAndSaveQuery={this.updateAndSaveQuery}
           dataSource={dataSource}
           dataSources={this.props.dataSources}
+          setDataSource={this.setDataSource}
           sourceMode={this.props.sourceMode}
         />
       </div>
