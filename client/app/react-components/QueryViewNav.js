@@ -15,18 +15,19 @@ export default class QueryViewNav extends React.Component {
     updateAndSaveQuery: PropTypes.func.isRequired,
     dataSource: PropTypes.object.isRequired,
     dataSourceVersion: PropTypes.instanceOf(PromiseState).isRequired,
-    dataSources: PropTypes.object.isRequired,
+    dataSources: PropTypes.array.isRequired,
     sourceMode: PropTypes.bool.isRequired,
     setDataSource: PropTypes.func.isRequired,
     schema: PropTypes.instanceOf(PromiseState).isRequired,
     refreshSchema: PropTypes.func.isRequired,
     editorPaste: PropTypes.func.isRequired,
+    clientConfig: PropTypes.object.isRequired,
   }
 
 
   render() {
     const dataSourceVersionMsg = this.props.dataSourceVersion.fulfilled ? this.props.dataSourceVersion.value.message : '';
-    const canScheduleQuery = this.props.currentUser.has_permission('schedule_query');
+    const canScheduleQuery = this.props.currentUser.hasPermission('schedule_query');
     const isQueryOwner = (this.props.currentUser.id === this.props.query.user.id ||
                           this.props.currentUser.hasPermission('admin'));
 
@@ -53,7 +54,7 @@ export default class QueryViewNav extends React.Component {
               editorPaste={this.props.editorPaste}
             />
           </div> :
-          <div style={{ 'flex-grow': 1 }}>&nbsp;</div>
+          <div style={{ flexGrow: 1 }}>&nbsp;</div>
         }
         <QueryMetadata
           mobile={false}
@@ -61,6 +62,7 @@ export default class QueryViewNav extends React.Component {
           saveQuery={this.props.updateAndSaveQuery}
           canEdit={this.props.canEdit}
           canScheduleQuery={canScheduleQuery}
+          clientConfig={this.props.clientConfig}
         />
       </nav>
 

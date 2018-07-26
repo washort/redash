@@ -158,7 +158,7 @@ export default class QueryViewHeader extends React.Component {
               >
                 <MenuItem
                   eventKey="duplicateQuery"
-                  className={!this.props.currentUser.hasPermission('edit_query') || this.props.dataSource.view_only ? 'disabled' : ''}
+                  className={!this.props.currentUser.hasPermission('edit_query') || !this.props.dataSource || this.props.dataSource.view_only ? 'disabled' : ''}
                   onSelect={this.duplicateQuery}
                 >
                     Fork

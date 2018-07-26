@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect, PromiseState } from 'react-refetch';
-import ToastContainer from 'react-toastr';
+import { ToastContainer } from 'react-toastr';
 import QueryViewHeader from './QueryViewHeader';
 import QueryViewMain from './QueryViewMain';
 import AlertUnsavedChanges from './AlertUnsavedChanges';
@@ -11,7 +11,7 @@ class QueryViewTop extends React.Component {
     // queryId: PropTypes.number.isRequired,
     query: PropTypes.instanceOf(PromiseState).isRequired,
     saveQuery: PropTypes.func.isRequired,
-    saveQueryResponse: PropTypes.instanceOf(PromiseState).isRequired,
+    saveQueryResponse: PropTypes.instanceOf(PromiseState),
     dataSources: PropTypes.instanceOf(PromiseState),
     sourceMode: PropTypes.bool.isRequired,
     $rootScope: PropTypes.object.isRequired,
@@ -19,11 +19,12 @@ class QueryViewTop extends React.Component {
 
   static defaultProps = {
     dataSources: null,
+    saveQueryResponse: null,
   }
 
   constructor(props) {
     super(props);
-    this.toastRef = this.createRef();
+    this.toastRef = React.createRef();
     this.state = {
       isDirty: false,
       query: null,
@@ -59,7 +60,7 @@ class QueryViewTop extends React.Component {
     // If we had an invalid value in localStorage (e.g. nothing, deleted source),
     // then use the first data source
 
-    return dataSource || this.props.dataSources[0];
+    return dataSource || this.props.dataSources.value[0];
   }
 
   setDataSource = (dataSource) => {
@@ -106,13 +107,14 @@ class QueryViewTop extends React.Component {
           Events={this.props.Events}
         />
         <QueryViewMain
+          clientConfig={this.props.clientConfig}
           canEdit={canEdit}
           currentUser={this.props.currentUser}
           basePath={this.props.basePath}
-          query={this.props.query}
+          query={query}
           updateAndSaveQuery={this.updateAndSaveQuery}
           dataSource={dataSource}
-          dataSources={this.props.dataSources}
+          dataSources={dataSources}
           setDataSource={this.setDataSource}
           sourceMode={this.props.sourceMode}
         />

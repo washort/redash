@@ -9,7 +9,7 @@ class QueryViewMain extends React.Component {
     currentUser: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     updateAndSaveQuery: PropTypes.func.isRequired,
-    dataSources: PropTypes.object.isRequired,
+    dataSources: PropTypes.array.isRequired,
     dataSource: PropTypes.object.isRequired,
     dataSourceVersion: PropTypes.instanceOf(PromiseState).isRequired,
     setDataSource: PropTypes.func.isRequired,
@@ -17,6 +17,7 @@ class QueryViewMain extends React.Component {
     canEdit: PropTypes.bool.isRequired,
     schema: PropTypes.instanceOf(PromiseState).isRequired,
     refreshSchema: PropTypes.func.isRequired,
+    clientConfig: PropTypes.object.isRequired,
   }
 
   editorPaste = text => text;
@@ -37,6 +38,7 @@ class QueryViewMain extends React.Component {
           schema={this.props.schema}
           refreshSchema={this.props.refreshSchema}
           editorPaste={this.editorPaste}
+          clientConfig={this.props.clientConfig}
         />
       </main>
     );
