@@ -18,14 +18,14 @@ const hourOptions = map(range(0, 24), partial(padWithZeros, 2));
 const minuteOptions = map(range(0, 60, 5), partial(padWithZeros, 2));
 
 function scheduleInLocalTime(schedule) {
-    const parts = schedule.split(':');
-    return moment
-      .utc()
-      .hour(parts[0])
-      .minute(parts[1])
-      .local()
-      .format('HH:mm');
-};
+  const parts = schedule.split(':');
+  return moment
+    .utc()
+    .hour(parts[0])
+    .minute(parts[1])
+    .local()
+    .format('HH:mm');
+}
 
 export default class ScheduleDialog extends React.Component {
   static propTypes = {
