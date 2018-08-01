@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { map, sortBy } from 'lodash';
 
 import { visualizationRegistry } from '@/visualizations';
 import QueryExecutionStatus from './QueryExecutionStatus';
@@ -9,7 +10,7 @@ import Parameters from './Parameters';
 function RdTab(props) {
   return (
     <li className={'rd-tab' + (props.tabId === props.selectedTab ? ' active' : '')}>
-      <a onClick={e => props.onClick(e, props.tabId)} href={`${props.basePath}#${props.tabId}`}>{props.name}{...props.children}</a>
+      <a onClick={e => props.onClick(e, props.tabId)} href={`${props.basePath}#${props.tabId}`}>{props.name}{props.children}</a>
     </li>
   );
 }
@@ -26,6 +27,7 @@ RdTab.propTypes = {
 export default class QueryViewVisualizations extends React.Component {
   static propTypes = {
     query: PropTypes.object.isRequired,
+    updateQuery: PropTypes.func.isRequired,
     queryResult: PropTypes.instanceOf(PromiseState).isRequired,
     sourceMode: PropTypes.bool.isRequired,
     canEdit: PropTypes.bool.isRequired,
@@ -39,6 +41,8 @@ export default class QueryViewVisualizations extends React.Component {
     };
   }
 
+  setParameters = parameters => this.updateQuery({ options: { ...this.query.options, parameters } })
+
   render() {
     return (
       <section className="flex-fill p-relative t-body">
@@ -51,13 +55,13 @@ export default class QueryViewVisualizations extends React.Component {
             bottom: 0,
           }}
         >
-          {this.props.query.getParametersDefs().length > 0 ?
+          {this.props.query.options.parameters.length > 0 ?
             <div className="p-t-15 p-b-15">
               <Parameters
-                parameters={this.props.query.getParametersDefs()}
-                query={this.props.query}
+                parameters={this.props.query.options.parameters}
                 syncValues={!!this.props.query.id}
                 editable={this.props.sourceMode && this.props.canEdit}
+                onChange={this.setParameters}
               />
             </div> : ''}
           <QueryExecutionStatus
