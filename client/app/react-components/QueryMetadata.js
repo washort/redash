@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { scheduleHumanize } from '@/filters/index';
 
+import { scheduleHumanize } from '@/filters/index';
 import ScheduleDialog from './ScheduleDialog';
 
 function timeAgo(when) {

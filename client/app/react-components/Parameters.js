@@ -4,8 +4,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Select from 'react-select';
+import { Modal } from 'react-bootstrap';
 import { SortableContainer, SortableElement, SortableHandle, arrayMove } from 'react-sortable-hoc';
-import DateTimeInput from '@/components/DateTimeInput';
+import DateTimeInput from './DateTimeInput';
 import QueryBasedParameter from './QueryBasedParameter';
 
 function extractEnumOptions(enumOptions) {
@@ -39,11 +40,12 @@ function parseParameter(origParam, value) {
   } else {
     param.value = value;
   }
-  return param
+  return param;
 }
 
 export default class Parameters extends React.Component {
   static propTypes = {
+    clientConfig: PropTypes.object.isRequired,
     parameters: PropTypes.array.isRequired,
     syncValues: PropTypes.bool.isRequired,
     editable: PropTypes.bool.isRequired,
@@ -78,14 +80,9 @@ export default class Parameters extends React.Component {
     this.props.onChange(arrayMove(this.props.parameters, oldIndex, newIndex));
   };
 
-  showParameterSettings = (param) => {
-    this.props.$uibModal.open({
-      component: 'parameterSettings',
-      resolve: {
-        parameter: param,
-      },
-    });
-  }
+  showParameterSettings = param => this.setState({ showSettings: param })
+
+  searchQueries = searchText => fetch(`${this.props.clientConfig.basePath}api/queries/search?q=${searchText}`).then(r => r.json()).then(qs => qs.map(q => ({ value: q.id, label: q.name })))
 
   render() {
     const searchParams = new URLSearchParams(window.location.search);
@@ -105,10 +102,21 @@ export default class Parameters extends React.Component {
           </select>);
       } else if (value.type === 'query') {
         paramInput = <QueryBasedParameter param={value} onChange={onChange} queryId={value.queryId} />;
-      } else if ( value.type === 'datetime-local' || value.type === 'date') {
-        paramInput = <DateTimeInput clientConfig={this.props.clientConfig} value={value.ngModel} onSelect={e => this.onParamChange(e, value)} />;
+      } else if (value.type === 'datetime-local' || value.type === 'date') {
+        paramInput = (
+          <DateTimeInput
+            clientConfig={this.props.clientConfig}
+            value={value.ngModel}
+            onSelect={e => this.onParamChange(e, value)}
+          />);
       } else if (value.type === 'datetime-with-seconds') {
-        paramInput = <DateTimeInput clientConfig={this.props.clientConfig} value={value.ngModel} onSelect={e => this.onParamChange(e, value)} withSeconds />;
+        paramInput = (
+          <DateTimeInput
+            clientConfig={this.props.clientConfig}
+            value={value.ngModel}
+            onSelect={e => this.onParamChange(e, value)}
+            withSeconds
+          />);
       } else {
         paramInput = <input type={value.type} id={value.name} className="form-control" value={paramText} onChange={onChange} />;
       }
@@ -134,9 +142,9 @@ export default class Parameters extends React.Component {
         ))}
       </div>
     ));
-
-    return (
-      <React.Fragment>
+    let modal = '';
+    if (this.state.showSettings) {
+      modal = (
         <Modal show={!!this.state.showSettings}>
           <Modal.Header>
             <Modal.Title>{this.state.showSettings.name}</Modal.Title>
@@ -161,7 +169,7 @@ export default class Parameters extends React.Component {
               </div>
               <div className="form-group">
                 <label>
-                  <input type="checkbox" className="form-inline" checked={this.state.showSettings.global} onChange={this.setParamGlobal}>
+                  <input type="checkbox" className="form-inline" checked={this.state.showSettings.global} onChange={this.setParamGlobal} />
                   Global
                 </label>
               </div>
@@ -170,23 +178,24 @@ export default class Parameters extends React.Component {
                   <label>Dropdown List Values (newline delimited)</label>
                   <textarea className="form-control" rows="3" value={this.state.showSettings.enumOptions} onChange={this.setParamEnumOptions} />
                 </div> : this.state.showSettings.type === 'query' ?
-                <div className="form-group">
-                  <label>Query to load dropdown values from:</label>
-                  <Select.Async
-                    value={this.state.showSettings.queryId}
-                    placeholder="Search a query by name"
-                    loadOptions={searchText => searchText.length > 3 ? this.props.searchQueries(searchText) : null}
-                  />
-                    <ui-select-match placeholder="Search a query by name">{{$select.selected.name}}</ui-select-match>
-                    <ui-select-choices repeat="q.id as q in $ctrl.queries"
-                                       refresh="$ctrl.searchQueries($select.search)"
-                                       refresh-delay="0">
-                    <div className="form-group" ng-bind-html="$ctrl.trustAsHtml(q.name | highlight: $select.search)"></div>
-                    </ui-select-choices>
-                </ui-select>
-              </div>
-
+                  <div className="form-group">
+                    <label>Query to load dropdown values from:</label>
+                    <Select.Async
+                      value={this.state.showSettings.queryId}
+                      placeholder="Search a query by name"
+                      loadOptions={searchText => (searchText.length > 3 ? this.searchQueries(searchText) : null)}
+                    />
+                  </div> : '' }
+            </div>
+          </Modal.Body>
+        </Modal>
+      );
+    }
+    return (
+      <React.Fragment>
+        {modal}
         <SortableList useDragHandle axis="x" distance={4} items={this.props.parameters} onSortEnd={this.onSortEnd} />
       </React.Fragment>
+    );
   }
 }

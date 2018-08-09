@@ -1,6 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect, PromiseState } from 'react-refetch';
+import Mustache from 'mustache';
+import { includes, some, union, uniq } from 'lodash';
+import moment from 'moment';
 
 import QueryViewNav from './QueryViewNav';
 import QueryViewVisualizations from './QueryViewVisualizations';
@@ -24,11 +27,75 @@ function collectParams(parts) {
 }
 
 function parseQuery(query) {
-  let parameters = [];
-  const parts = Mustache.parse(query);
-  return uniq(collectParams(parts));
+  return uniq(collectParams(Mustache.parse(query)));
 }
 
+const filterTypes = ['filter', 'multi-filter', 'multiFilter'];
+
+function getColumnNameWithoutType(column) {
+  let typeSplit;
+  if (column.indexOf('::') !== -1) {
+    typeSplit = '::';
+  } else if (column.indexOf('__') !== -1) {
+    typeSplit = '__';
+  } else {
+    return column;
+  }
+
+  const parts = column.split(typeSplit);
+  if (parts[0] === '' && parts.length === 2) {
+    return parts[1];
+  }
+
+  if (!includes(filterTypes, parts[1])) {
+    return column;
+  }
+
+  return parts[0];
+}
+
+export function getColumnCleanName(column) {
+  return getColumnNameWithoutType(column);
+}
+
+function getColumnFriendlyName(column) {
+  return getColumnNameWithoutType(column).replace(/(?:^|\s)\S/g, a =>
+    a.toUpperCase());
+}
+
+function getFilters(queryResult) {
+  const filters = [];
+  queryResult.data.columns.forEach((col) => {
+    const name = col.name;
+    const type = name.split('::')[1] || name.split('__')[1];
+    if (includes(filterTypes, type)) {
+      // filter found
+      const filter = {
+        name,
+        friendlyName: getColumnFriendlyName(name),
+        column: col,
+        values: [],
+        multiple: (type === 'multiFilter') || (type === 'multi-filter'),
+      };
+      filters.push(filter);
+    }
+  });
+  return filters;
+}
+
+function filterData(filters, queryResult) {
+  return queryResult.data.rows.filter(row =>
+    filters.reduce((memo, filter) => (
+      memo && some(filter.current, (v) => {
+        const value = row[filter.name];
+        if (moment.isMoment(value)) {
+          return value.isSame(v);
+        }
+        // We compare with either the value or the String representation of the value,
+        // because Select2 casts true/false to "true"/"false".
+        return (v === value || String(value) === v);
+      }))), true);
+}
 
 class QueryViewMain extends React.Component {
   static propTypes = {
@@ -46,7 +113,38 @@ class QueryViewMain extends React.Component {
     schema: PropTypes.instanceOf(PromiseState).isRequired,
     refreshSchema: PropTypes.func.isRequired,
     clientConfig: PropTypes.object.isRequired,
+    executeQuery: PropTypes.func.isRequired,
+    executeQueryResponse: PropTypes.instanceOf(PromiseState).isRequired,
   }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      queryResult: null, // eslint-disable-line react/no-unused-state
+      queryExecuting: false,
+      filters: [],
+      filteredData: [],
+    };
+  }
+
+  static getDerivedStateFromProps(oldState, newProps) {
+    if (newProps.queryResult &&
+        newProps.queryResult.fulfilled &&
+        oldState.queryResult !== newProps.queryResult.value) {
+      const data = newProps.queryResult.value;
+      const filters = getFilters(data);
+      return {
+        queryResult: data,
+        filters,
+        filteredData: filterData(filters, data),
+      };
+    }
+    return null;
+  }
+
+  setFilters = filters => this.setState({ filters })
+
+  canExecuteQuery = () => this.props.currentUser.hasPermission('execute_query') && !this.props.dataSource.view_only
 
   editorPaste = text => text;
 
@@ -90,18 +188,24 @@ class QueryViewMain extends React.Component {
               }}
             >
               {this.props.sourceMode ?
-                <div className="row editor" resizable r-directions="['bottom']" r-flex="true" resizable-toggle
-                  style="min-height: 11px; max-height: 70vh;">
+                <div
+                  className="row editor"
+                  resizable
+                  r-directions="['bottom']"
+                  r-flex="true"
+                  resizable-toggle
+                  style={{ 'min-height': 11, 'max-height': 70 }}
+                >
                   <QueryEditor
                     ref={this.queryEditor}
-                    style={{width: '100%', height: '100%'}}
+                    style={{ width: '100%', height: '100%' }}
                     queryText={this.props.query.query}
                     autocompleteQuery={this.autocompleteQuery}
                     schema={this.state.dataSource.schema}
                     syntax={this.state.dataSource.syntax}
                     isQueryOwner={this.props.isQueryOwner}
                     updateDataSource={this.updateDataSource}
-                    executeQuery={this.executeQuery}
+                    executeQuery={this.props.executeQuery}
                     canExecuteQuery={this.canExecuteQuery()}
                     listenForResize={this.listenForResize}
                     saveQuery={this.saveQuery}
@@ -116,14 +220,21 @@ class QueryViewMain extends React.Component {
                 saveQuery={this.saveQuery}
                 canEdit={this.props.canEdit}
                 canScheduleQuery={this.canScheduleQuery}
-                schedule={this.query.schedule}
+                schedule={this.props.query.schedule}
+                clientConfig={this.props.clientConfig}
               />
               <QueryViewVisualizations
+                clientConfig={this.props.clientConfig}
                 query={this.props.query}
                 updateQuery={this.props.updateQuery}
+                searchQueries={this.props.searchQueries}
                 queryResult={this.props.queryResult}
                 sourceMode={this.props.sourceMode}
                 canEdit={this.props.canEdit}
+                setFilters={this.setFilters}
+                filters={this.state.filters}
+                executeQueryResponse={this.props.executeQueryResponse}
+                queryExecuting={this.state.queryExecuting}
               />
             </div>
           </div>
@@ -131,6 +242,11 @@ class QueryViewMain extends React.Component {
             <QueryViewFooter
               query={this.props.query}
               queryResult={this.props.queryResult}
+              canEdit={this.props.canEdit}
+              filteredData={this.state.filteredData}
+              selectedTab={this.state.selectedTab}
+              queryExecuting={this.state.queryExecuting}
+              canExecuteQuery={this.canExecuteQuery()}
             />
           </div>
         </div>
@@ -143,16 +259,13 @@ function fetchDataSource(props) {
   if (props.dataSource) {
     const versionURL = `${props.clientConfig.basePath}api/data_sources/${props.dataSource.id}/version`;
     const schemaURL = `${props.clientConfig.basePath}api/data_sources/${props.dataSource.id}/schema`;
-    const queryResultURL = `${props.clientConfig.basePath}api/query_results/${props.dataSource.id}/schema`;
+
     return {
       dataSourceVersion: {
         url: versionURL,
       },
       schema: {
         url: schemaURL,
-      },
-      queryResult: {
-        url: queryResultURL,
       },
       refreshSchema: () => ({
         schema: {
@@ -163,6 +276,7 @@ function fetchDataSource(props) {
       }),
     };
   }
+  return {};
 }
 
 export default connect(fetchDataSource)(QueryViewMain);

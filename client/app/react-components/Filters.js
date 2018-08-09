@@ -40,13 +40,13 @@ export default class Filters extends React.Component {
     return { label: firstValue, value: firstValue, filter };
   }
   changeFilters = (change) => {
-    const f = change.filter;
+    const f = { ...change.filter };
     if (f.multiple) {
       f.current = [...f.current, change.value];
     } else {
       f.current = [change.value];
     }
-    this.props.onChange([...this.props.filters]);
+    this.props.onChange({ ...this.props.filters, [change.label]: f });
   }
 
   render() {

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { map, sortBy } from 'lodash';
+import { PromiseState } from 'react-refetch';
 
 import { visualizationRegistry } from '@/visualizations';
 import QueryExecutionStatus from './QueryExecutionStatus';
@@ -26,11 +27,15 @@ RdTab.propTypes = {
 
 export default class QueryViewVisualizations extends React.Component {
   static propTypes = {
+    clientConfig: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     updateQuery: PropTypes.func.isRequired,
     queryResult: PropTypes.instanceOf(PromiseState).isRequired,
     sourceMode: PropTypes.bool.isRequired,
     canEdit: PropTypes.bool.isRequired,
+    setFilters: PropTypes.func.isRequired,
+    filters: PropTypes.array.isRequired,
+    executeQueryResponse: PropTypes.instanceOf(PromiseState).isRequired,
   };
 
   constructor(props) {
@@ -41,7 +46,7 @@ export default class QueryViewVisualizations extends React.Component {
     };
   }
 
-  setParameters = parameters => this.updateQuery({ options: { ...this.query.options, parameters } })
+  setParameters = parameters => this.props.updateQuery({ options: { ...this.query.options, parameters } })
 
   render() {
     return (
@@ -58,6 +63,7 @@ export default class QueryViewVisualizations extends React.Component {
           {this.props.query.options.parameters.length > 0 ?
             <div className="p-t-15 p-b-15">
               <Parameters
+                clientConfig={this.props.clientConfig}
                 parameters={this.props.query.options.parameters}
                 syncValues={!!this.props.query.id}
                 editable={this.props.sourceMode && this.props.canEdit}
@@ -65,9 +71,9 @@ export default class QueryViewVisualizations extends React.Component {
               />
             </div> : ''}
           <QueryExecutionStatus
-            query={this.props.query}
+            queryId={this.props.query.id}
             queryResult={this.props.queryResult}
-            status={this.props.queryResult.getStatus()}
+            executeQueryResponse={this.props.executeQueryResponse}
             Event={this.props.Event}
           />
           {/* tabs and data */}
@@ -123,6 +129,8 @@ export default class QueryViewVisualizations extends React.Component {
                 </ul>
                 <div className="query__vis m-t-15 scrollbox">
                   <VisualizationRenderer
+                    setFilters={this.props.setFilters}
+                    filters={this.props.filters}
                     visualization={this.props.query.visualizations.length ?
                                    find(
                                      this.props.query.visualizations,
@@ -131,7 +139,6 @@ export default class QueryViewVisualizations extends React.Component {
                                      type: visualizationRegistry.CHART.type,
                                      options: visualizationRegistry.CHART.defaultOptions,
                                    }}
-                    queryResult={this.props.queryResult}
                   />
                 </div>
               </div>

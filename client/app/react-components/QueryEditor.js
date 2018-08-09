@@ -72,6 +72,7 @@ export default class QueryEditor extends React.Component {
     saveQuery: PropTypes.func.isRequired,
     updateQuery: PropTypes.func.isRequired,
     listenForResize: PropTypes.func.isRequired, // eslint-disable-line react/no-unused-prop-types
+    queryExecuting: PropTypes.bool.isRequired,
   }
 
   static defaultProps = {
@@ -89,7 +90,6 @@ export default class QueryEditor extends React.Component {
       schema: null, // eslint-disable-line react/no-unused-state
       keywords: [], // eslint-disable-line react/no-unused-state
       autocompleteQuery: false,
-      queryExecuting: false,
       queryText: this.props.queryText,
     };
     const self = this;
@@ -211,7 +211,7 @@ export default class QueryEditor extends React.Component {
                     {this.state.isDirty ? '&#42;' : ''}
                   </button>
 
-                  <button type="button" className="btn btn-primary" disabled={this.state.queryExecuting || !this.props.canExecuteQuery()} onClick={this.props.executeQuery}>
+                  <button type="button" className="btn btn-primary" disabled={this.props.queryExecuting || !this.props.canExecuteQuery()} onClick={this.props.executeQuery}>
                     <span className="zmdi zmdi-play" />
                     <span className="hidden-xs">Execute</span>
                   </button>

@@ -207,15 +207,15 @@ function OldChartEditor(clientConfig) {
         });
       }
 
-      scope.$watch('options', () => {
-        if (scope.options) {
-          // For existing visualization - set default options
-          defaults(scope.options, extend({}, DEFAULT_OPTIONS, {
-            showDataLabels: scope.options.globalSeriesType === 'pie',
-            dateTimeFormat: clientConfig.dateTimeFormat,
-          }));
-        }
-      });
+      // scope.$watch('options', () => {
+      //   if (scope.options) {
+      //     // For existing visualization - set default options
+      //     defaults(scope.options, extend({}, DEFAULT_OPTIONS, {
+      //       showDataLabels: scope.options.globalSeriesType === 'pie',
+      //       dateTimeFormat: clientConfig.dateTimeFormat,
+      //     }));
+      //   }
+      // });
 
       scope.templateHint = `
         <div class="p-b-5">Use special names to access additional properties:</div>

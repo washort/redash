@@ -11,15 +11,17 @@ class QueryViewTop extends React.Component {
     // queryId: PropTypes.number.isRequired,
     query: PropTypes.instanceOf(PromiseState).isRequired,
     saveQuery: PropTypes.func.isRequired,
-    saveQueryResponse: PropTypes.instanceOf(PromiseState),
+    // saveQueryResponse: PropTypes.instanceOf(PromiseState),
     dataSources: PropTypes.instanceOf(PromiseState),
     sourceMode: PropTypes.bool.isRequired,
     $rootScope: PropTypes.object.isRequired,
+    executeQuery: PropTypes.func.isRequired,
+    executeQueryResponse: PropTypes.instanceOf(PromiseState).isRequired,
   }
 
   static defaultProps = {
     dataSources: null,
-    saveQueryResponse: null,
+    // saveQueryResponse: null,
   }
 
   constructor(props) {
@@ -29,7 +31,7 @@ class QueryViewTop extends React.Component {
       isDirty: false,
       query: null,
       // XXX get this with refetch?
-      latestQueryData: null,
+      // latestQueryData: null,
     };
   }
 
@@ -66,7 +68,7 @@ class QueryViewTop extends React.Component {
   setDataSource = (dataSource) => {
     this.props.Events.record('update_data_source', 'query', this.props.query.id);
     localStorage.lastSelectedDataSourceId = this.props.query.data_source_id;
-    this.setState({ latestQueryData: null });
+    // this.setState({ latestQueryData: null });
     (this.props.query.id ? this.updateAndSaveQuery : this.updateQuery)({
       data_source_id: dataSource.id,
       latest_query_data_id: null,
@@ -112,11 +114,14 @@ class QueryViewTop extends React.Component {
           currentUser={this.props.currentUser}
           basePath={this.props.basePath}
           query={query}
+          queryResult={this.props.queryResult}
           updateAndSaveQuery={this.updateAndSaveQuery}
           dataSource={dataSource}
           dataSources={dataSources}
           setDataSource={this.setDataSource}
           sourceMode={this.props.sourceMode}
+          executeQuery={this.props.executeQuery}
+          executeQueryResponse={this.props.executeQueryResponse}
         />
       </div>
     );
@@ -129,6 +134,10 @@ function fetchQuery(props) {
       query: {
         url: `${props.clientConfig.basePath}api/queries/${props.queryId}`,
         andThen: query => ({
+          queryResult: query.latest_query_data_id ? {
+            url: `${props.clientConfig.basePath}api/query_results/${query.latest_query_data_id}`,
+          } : undefined,
+
           dataSources: {
             url: `${props.clientConfig.basePath}api/data_sources`,
             then: dataSources => ({
@@ -146,6 +155,20 @@ function fetchQuery(props) {
           body: newQuery,
         },
       }),
+      executeQuery: query => ({
+        executeQueryResponse: {
+          url: `${props.clientConfig.basePath}api/query_results/`,
+          method: 'POST',
+          body: query,
+        },
+      }),
+      executeQueryResponse: { value: {} },
+      checkJobStatus: jobId => ({
+        job: {
+          url: `${props.clientConfig.basePath}api/jobs/${jobId}`,
+        },
+      }),
+      job: { value: {} },
     };
   }
   return {};
