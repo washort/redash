@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { map } from 'lodash';
-
+import { PromiseState } from 'react-refetch';
 import AceEditor from 'react-ace';
 import ace from 'brace';
 
@@ -61,24 +61,23 @@ export default class QueryEditor extends React.Component {
   static propTypes = {
     queryText: PropTypes.string.isRequired,
     autocompleteQuery: PropTypes.bool, // eslint-disable-line react/no-unused-prop-types
-    schema: PropTypes.array, // eslint-disable-line react/no-unused-prop-types
+    schema: PropTypes.instanceOf(PromiseState).isRequired, // eslint-disable-line react/no-unused-prop-types
     syntax: PropTypes.string,
     dataSources: PropTypes.array,
     dataSource: PropTypes.object,
     isQueryOwner: PropTypes.bool.isRequired,
     updateDataSource: PropTypes.func.isRequired,
-    canExecuteQuery: PropTypes.func.isRequired,
+    canExecuteQuery: PropTypes.bool.isRequired,
     executeQuery: PropTypes.func.isRequired,
     saveQuery: PropTypes.func.isRequired,
     updateQuery: PropTypes.func.isRequired,
-    listenForResize: PropTypes.func.isRequired, // eslint-disable-line react/no-unused-prop-types
+    // listenForResize: PropTypes.func.isRequired, // eslint-disable-line react/no-unused-prop-types
     queryExecuting: PropTypes.bool.isRequired,
   }
 
   static defaultProps = {
     syntax: 'sql',
     autocompleteQuery: false,
-    schema: null,
     dataSource: { options: { doc: '' } },
     dataSources: [],
   }
@@ -116,19 +115,19 @@ export default class QueryEditor extends React.Component {
       editor.commands.bindKey('Cmd+L', null);
       editor.commands.bindKey('Ctrl+L', null);
 
-      self.props.QuerySnippet.query((snippets) => {
-        const snippetManager = snippetsModule.snippetManager;
-        const m = {
-          snippetText: '',
-        };
-        m.snippets = snippetManager.parseSnippetFile(m.snippetText);
-        snippets.forEach((snippet) => {
-          m.snippets.push(snippet.getSnippet());
-        });
-        snippetManager.register(m.snippets || [], m.scope);
-      });
+    //   self.props.QuerySnippet.query((snippets) => {
+    //     const snippetManager = snippetsModule.snippetManager;
+    //     const m = {
+    //       snippetText: '',
+    //     };
+    //     m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+    //     snippets.forEach((snippet) => {
+    //       m.snippets.push(snippet.getSnippet());
+    //     });
+    //     snippetManager.register(m.snippets || [], m.scope);
+    //   });
       editor.focus();
-      self.props.listenForResize(() => editor.resize());
+      //self.props.listenForResize(() => editor.resize());
     };
 
     this.formatQuery = () => {
@@ -139,14 +138,15 @@ export default class QueryEditor extends React.Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    if (!nextProps.schema) {
+    if (!nextProps.schema.fulfilled) {
       return { ...prevState, keywords: [], autocompleteQuery: false };
-    } else if (nextProps.schema !== prevState.schema) {
+    } else if (nextProps.schema.value.schema !== prevState.schema) {
+      const schema = nextProps.schema.value.schema;
       return {
         ...prevState,
-        schema: nextProps.schema,
-        keywords: buildKeywordsFromSchema(nextProps.schema),
-        autocompleteQuery: (nextProps.schema.reduce((totalLength, table) =>
+        schema,
+        keywords: buildKeywordsFromSchema(schema),
+        autocompleteQuery: (schema.reduce((totalLength, table) =>
           totalLength + table.columns.length, 0) <= 5000 && nextProps.autocompleteQuery),
       };
     }
@@ -211,7 +211,7 @@ export default class QueryEditor extends React.Component {
                     {this.state.isDirty ? '&#42;' : ''}
                   </button>
 
-                  <button type="button" className="btn btn-primary" disabled={this.props.queryExecuting || !this.props.canExecuteQuery()} onClick={this.props.executeQuery}>
+                  <button type="button" className="btn btn-primary" disabled={this.props.queryExecuting || !this.props.canExecuteQuery} onClick={this.props.executeQuery}>
                     <span className="zmdi zmdi-play" />
                     <span className="hidden-xs">Execute</span>
                   </button>

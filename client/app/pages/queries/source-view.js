@@ -1,4 +1,9 @@
-function QuerySourceCtrl(
+
+function QuerySourceCtrl($scope, $route) {
+  $scope.queryId = $route.current.params.queryId;
+}
+// eslint-disable-next-line no-unused-vars
+function OldQuerySourceCtrl(
   Events, toastr, $controller, $scope, $location, $http, $q,
   AlertDialog, currentUser, Query, Visualization, KeyboardShortcuts,
 ) {

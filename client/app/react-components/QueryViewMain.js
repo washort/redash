@@ -201,8 +201,8 @@ class QueryViewMain extends React.Component {
                     style={{ width: '100%', height: '100%' }}
                     queryText={this.props.query.query}
                     autocompleteQuery={this.autocompleteQuery}
-                    schema={this.state.dataSource.schema}
-                    syntax={this.state.dataSource.syntax}
+                    schema={this.props.schema}
+                    syntax={this.props.dataSource.syntax}
                     isQueryOwner={this.props.isQueryOwner}
                     updateDataSource={this.updateDataSource}
                     executeQuery={this.props.executeQuery}
@@ -210,7 +210,7 @@ class QueryViewMain extends React.Component {
                     listenForResize={this.listenForResize}
                     saveQuery={this.saveQuery}
                     updateQuery={this.updateQueryText}
-                    dataSource={this.state.dataSource}
+                    dataSource={this.props.dataSource}
                     dataSources={this.props.dataSources}
                   />
                 </div> : ''}
@@ -219,7 +219,7 @@ class QueryViewMain extends React.Component {
                 query={this.props.query}
                 saveQuery={this.saveQuery}
                 canEdit={this.props.canEdit}
-                canScheduleQuery={this.canScheduleQuery}
+                canScheduleQuery={this.props.currentUser.hasPermission('schedule_query')}
                 schedule={this.props.query.schedule}
                 clientConfig={this.props.clientConfig}
               />

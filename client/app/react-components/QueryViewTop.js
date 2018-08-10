@@ -122,6 +122,7 @@ class QueryViewTop extends React.Component {
           sourceMode={this.props.sourceMode}
           executeQuery={this.props.executeQuery}
           executeQueryResponse={this.props.executeQueryResponse}
+          updateQuery={this.updateQuery}
         />
       </div>
     );
