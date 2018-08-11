@@ -5,6 +5,7 @@ import Mustache from 'mustache';
 import { includes, some, union, uniq } from 'lodash';
 import moment from 'moment';
 
+import FlexResizable from './FlexResizable';
 import QueryViewNav from './QueryViewNav';
 import QueryViewVisualizations from './QueryViewVisualizations';
 import QueryViewFooter from './QueryViewFooter';
@@ -125,6 +126,8 @@ class QueryViewMain extends React.Component {
       filters: [],
       filteredData: [],
     };
+    const queryEditor = React.createRef();
+    this.listenForResize = (f) => { this.resizeEditor = f; }
   }
 
   static getDerivedStateFromProps(oldState, newProps) {
@@ -188,13 +191,12 @@ class QueryViewMain extends React.Component {
               }}
             >
               {this.props.sourceMode ?
-                <div
+                <FlexResizable
                   className="row editor"
-                  resizable
-                  r-directions="['bottom']"
-                  r-flex="true"
-                  resizable-toggle
-                  style={{ 'min-height': 11, 'max-height': 70 }}
+                  style={{ minHeight: 11, maxHeight: '70vh' }}
+                  onResize={this.resizeEditor}
+                  elementName="div"
+                  direction="bottom"
                 >
                   <QueryEditor
                     ref={this.queryEditor}
@@ -213,7 +215,7 @@ class QueryViewMain extends React.Component {
                     dataSource={this.props.dataSource}
                     dataSources={this.props.dataSources}
                   />
-                </div> : ''}
+                </FlexResizable> : ''}
               <QueryMetadata
                 mobile
                 query={this.props.query}

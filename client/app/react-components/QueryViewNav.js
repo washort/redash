@@ -4,6 +4,7 @@ import Select from 'react-select';
 import 'react-select/dist/react-select.css';
 import { PromiseState } from 'react-refetch';
 
+import FlexResizable from './FlexResizable';
 import QueryMetadata from './QueryMetadata';
 import SchemaBrowser from './SchemaBrowser';
 
@@ -32,7 +33,7 @@ export default class QueryViewNav extends React.Component {
                           this.props.currentUser.hasPermission('admin'));
 
     return (
-      <nav resizable r-directions="['right']" r-flex="true" resizable-toggle>
+      <FlexResizable direction="right" elementName="nav">
         <div className="editor__left__data-source">
           <Select
             value={this.props.dataSource}
@@ -64,7 +65,7 @@ export default class QueryViewNav extends React.Component {
           canScheduleQuery={canScheduleQuery}
           clientConfig={this.props.clientConfig}
         />
-      </nav>
+      </FlexResizable>
 
     );
   }

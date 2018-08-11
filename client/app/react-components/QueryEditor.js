@@ -71,7 +71,7 @@ export default class QueryEditor extends React.Component {
     executeQuery: PropTypes.func.isRequired,
     saveQuery: PropTypes.func.isRequired,
     updateQuery: PropTypes.func.isRequired,
-    // listenForResize: PropTypes.func.isRequired, // eslint-disable-line react/no-unused-prop-types
+    listenForResize: PropTypes.func.isRequired,
     queryExecuting: PropTypes.bool.isRequired,
   }
 
@@ -127,7 +127,7 @@ export default class QueryEditor extends React.Component {
     //     snippetManager.register(m.snippets || [], m.scope);
     //   });
       editor.focus();
-      //self.props.listenForResize(() => editor.resize());
+      self.props.listenForResize((e) => { console.log(e); editor.resize(); });
     };
 
     this.formatQuery = () => {
