@@ -73,6 +73,7 @@ function QueryResultService($resource, $timeout, $q, QueryResultError, Auth) {
 
       // extended status flags
       this.isLoadingResult = false;
+      this.queueStatus = null;
 
       if (props) {
         this.update(props);
@@ -365,6 +366,26 @@ function QueryResultService($resource, $timeout, $q, QueryResultError, Auth) {
       );
     }
 
+    refreshQueueStatus(dataSourceId) {
+      if (this.getStatus() === 'waiting') {
+        const actions = {
+          get: { method: 'GET', cache: false, isArray: false },
+        };
+        $resource('api/jobs/:id/data_source/:dataSourceId/status', { id: '@id', dataSourceId: '@dataSourceId' }, actions).get(
+          {
+            id: this.job.id,
+            dataSourceId,
+          },
+          (statusResponse) => {
+            $timeout(() => this.refreshQueueStatus(dataSourceId), 10000);
+            this.queueStatus = statusResponse.data.num_tasks;
+          },
+        );
+      } else {
+        this.queueStatus = null;
+      }
+    }
+
     getLink(queryId, fileType, apiKey) {
       let link = `api/queries/${queryId}/results/${this.getId()}.${fileType}`;
       if (apiKey) {
@@ -422,6 +443,7 @@ function QueryResultService($resource, $timeout, $q, QueryResultError, Auth) {
 
           if ('job' in response) {
             queryResult.refreshStatus(query, parameters);
+            queryResult.refreshQueueStatus(dataSourceId);
           }
         },
         (error) => {
