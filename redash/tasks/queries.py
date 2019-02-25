@@ -12,6 +12,7 @@ from redash import models, redis_connection, settings, statsd_client
 from redash.query_runner import InterruptException
 from redash.tasks.alerts import check_alerts_for_query
 from redash.utils import gen_query_hash, json_dumps, json_loads, utcnow, mustache_render
+from redash.monitor import get_waiting_in_queue
 from redash.worker import celery
 
 logger = get_task_logger(__name__)
@@ -71,12 +72,22 @@ class QueryTask(object):
         else:
             query_result_id = None
 
+        queries_ahead = 0
+        if task_status == 'PENDING':
+            waiting = QueryTaskTracker.all(QueryTaskTracker.WAITING_LIST)
+            waiting_length = len(waiting)
+            # find our job's index, return number of queries after it
+            for i, waiting_task in enumerate(waiting):
+                if waiting_task.data['task_id'] == self._async_result.id:
+                    queries_ahead = waiting_length - i - 1
+                    break
         return {
             'id': self._async_result.id,
             'updated_at': updated_at,
             'status': status,
             'error': error,
             'query_result_id': query_result_id,
+            'queue_length': queries_ahead,
         }
 
     @property
