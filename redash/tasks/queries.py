@@ -475,7 +475,7 @@ class QueryExecutor(object):
 
         _unlock(self.query_hash, self.data_source.id)
 
-        if error:
+        if error is not None:
             self.tracker.update(state='failed')
             result = QueryExecutionError(error)
             if self.scheduled_query is not None:
@@ -489,13 +489,10 @@ class QueryExecutor(object):
                 self.scheduled_query = models.db.session.merge(self.scheduled_query, load=False)
                 self.scheduled_query.schedule_failures = 0
                 models.db.session.add(self.scheduled_query)
-            try:
-                query_result, updated_query_ids = models.QueryResult.store_result(
-                    self.data_source.org_id, self.data_source,
-                    self.query_hash, self.query, data,
-                    run_time, utcnow())
-            except DBAPIError as e:
-                raise e.orig
+            query_result, updated_query_ids = models.QueryResult.store_result(
+                self.data_source.org_id, self.data_source,
+                self.query_hash, self.query, data,
+                run_time, utcnow())
             models.db.session.commit()  # make sure that alert sees the latest query result
             self._log_progress('checking_alerts')
             for query_id in updated_query_ids:
