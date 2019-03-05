@@ -5,11 +5,12 @@ ARG skip_ds_deps
 
 # We first copy only the requirements file, to avoid rebuilding on every file
 # change.
-COPY requirements.txt requirements_dev.txt requirements_all_ds.txt ./
+COPY . ./
 RUN pip install -r requirements.txt -r requirements_dev.txt
 RUN if [ "x$skip_ds_deps" = "x" ] ; then pip install -r requirements_all_ds.txt ; else echo "Skipping pip install -r requirements_all_ds.txt" ; fi
+RUN (cd redash-stmo; python setup.py install)
 
-COPY . ./
+
 RUN npm install && npm run bundle && npm run build && rm -rf node_modules
 
 # Upgrade node to LTS 6.11.2
