@@ -1,7 +1,7 @@
 """Add column metadata and table metadata
 
 Revision ID: 280daa582976
-Revises: b8a479422596
+Revises: 151a4c333e96
 Create Date: 2019-01-24 18:23:53.040608
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '280daa582976'
-down_revision = 'b8a479422596'
+down_revision = '151a4c333e96'
 branch_labels = None
 depends_on = None
 
