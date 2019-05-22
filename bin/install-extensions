@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+import os
+import subprocess
+
+PARENT_DIR = os.path.dirname(os.path.dirname(__file__))
+EXTENSIONS_REQUIREMENTS = os.path.join(PARENT_DIR, "requirements_extensions.txt")
+
+# Install extensions
+if os.path.isfile(EXTENSIONS_REQUIREMENTS):
+    subprocess.check_call(
+        ["pip", "install", "--user", "-r", EXTENSIONS_REQUIREMENTS]
+    )
+    print("Installed extensions from %s." % EXTENSIONS_REQUIREMENTS)
