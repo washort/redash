@@ -18,8 +18,7 @@ COPY package.json package-lock.json /frontend/
 RUN npm install
 
 COPY . /frontend
-COPY --from=extension-installer /app/client/app/extensions /app/client/app/extensions
-
+COPY --from=extension-installer /app/client/app/extensions /frontend/client/app/extensions
 RUN npm run build
 
 FROM redash/base:latest
