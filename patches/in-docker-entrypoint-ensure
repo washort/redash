@@ -1,0 +1,36 @@
+Bottom: ad817ad95f1cee55857c245ac07c5c09bbe5f78b
+Top:    b5e08ff263823becfc4b1a2c0534585550c06043
+Author: Allen Short <ashort@mozilla.com>
+Date:   2017-04-12 22:02:42 +0000
+
+In docker-entrypoint ensure tables exist
+
+
+---
+diff --git a/bin/docker-entrypoint b/bin/docker-entrypoint
+index 62d80e95..670ad670 100755
+--- a/bin/docker-entrypoint
++++ b/bin/docker-entrypoint
+@@ -2,6 +2,7 @@
+ set -e
+ 
+ worker() {
++  /app/manage.py db upgrade
+   WORKERS_COUNT=${WORKERS_COUNT:-2}
+   QUEUES=${QUEUES:-queries,scheduled_queries,celery,schemas}
+   WORKER_EXTRA_OPTIONS=${WORKER_EXTRA_OPTIONS:-}
+@@ -11,6 +12,7 @@ worker() {
+ }
+ 
+ scheduler() {
++  /app/manage.py db upgrade
+   WORKERS_COUNT=${WORKERS_COUNT:-1}
+   QUEUES=${QUEUES:-celery}
+   SCHEDULE_DB=${SCHEDULE_DB:-celerybeat-schedule}
+@@ -21,6 +23,7 @@ scheduler() {
+ }
+ 
+ server() {
++  /app/manage.py db upgrade
+   exec /usr/local/bin/gunicorn -b 0.0.0.0:5000 --name redash -w${REDASH_WEB_WORKERS:-4} redash.wsgi:app
+ }

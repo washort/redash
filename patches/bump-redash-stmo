@@ -1,0 +1,19 @@
+Bottom: 4bccbe4ae06cb610aad5cfcf9991b16b67c4179d
+Top:    ee24f3c472a215459d5609e13fc6e4b669cedb96
+Author: Allen Short <ashort@mozilla.com>
+Date:   2019-04-02 14:52:48 -0500
+
+bump redash-stmo
+
+
+---
+diff --git a/requirements.txt b/requirements.txt
+index 4269850a..e10b47f9 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -61,4 +61,4 @@ disposable-email-domains
+ # It is not included by default because of the GPL license conflict.
+ # ldap3==2.2.4
+ gevent==1.4.0
+-redash-stmo>=2018.12.0
++redash-stmo>=2019.3.2

@@ -1,0 +1,451 @@
+Bottom: dd62c039b1c9f325667043d5559e355e08f18a2e
+Top:    756a9f6de0756b644f745f27429900bdf45db664
+Author: Davor Spasovski <davor@spasovski.net>
+Date:   2017-02-06 13:39:46 -0500
+
+Add compare query version support (re #7)
+
+
+---
+diff --git a/client/app/pages/queries/compare-query-dialog.css b/client/app/pages/queries/compare-query-dialog.css
+new file mode 100644
+index 00000000..ce2d0137
+--- /dev/null
++++ b/client/app/pages/queries/compare-query-dialog.css
+@@ -0,0 +1,54 @@
++/* Compare Query Version container */
++/* Offers slight visual improvement (alignment) to modern UAs */
++.compare-query-version {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++}
++
++.diff-removed {
++  background-color: rgba(208, 2, 27, 0.3);
++}
++
++.diff-added {
++  background-color: rgba(65, 117, 5, 0.3);
++}
++
++.query-diff-container span {
++  display: inline-block;
++  border-radius: 3px;
++  line-height: 20px;
++  vertical-align: middle;
++  margin: 0 5px 0 0;
++}
++
++.query-diff-container > div:not(.compare-query-version-controls) {
++  float: left;
++  width: calc(50% - 5px);
++  margin: 0 10px 0 0;
++}
++
++.compare-query-version {
++  background-color: #f5f5f5;
++  padding: 5px;
++  border: 1px solid #ccc;
++  margin-right: 15px;
++  border-radius: 3px;
++}
++
++.diff-content {
++  border: 1px solid #ccc;
++  background-color: #f5f5f5;
++  border-radius: 3px;
++  padding: 15px;
++}
++
++.query-diff-container > div:last-child {
++  margin: 0;
++}
++
++.compare-query-version-controls {
++  display: flex;
++  align-items: center;
++  margin-bottom: 25px;
++}
+diff --git a/client/app/pages/queries/compare-query-dialog.html b/client/app/pages/queries/compare-query-dialog.html
+new file mode 100644
+index 00000000..52140460
+--- /dev/null
++++ b/client/app/pages/queries/compare-query-dialog.html
+@@ -0,0 +1,33 @@
++<div class="modal-header">
++    <button type="button" class="close" aria-label="Close" ng-click="$ctrl.close()">
++        <span aria-hidden="true">&times;</span>
++    </button>
++    <h4 class="modal-title">Compare Query</h4>
++</div>
++<div class="modal-body query-diff-container">
++    <div class="compare-query-version-controls">
++        <div class="compare-query-version">
++            <span>Compare current version to</span>
++            <select id="version-choice" ng-model="compareQueryVersion" ng-change="$ctrl.compareQueries()">
++                <option ng-repeat="version in $ctrl.versions.slice(0, $ctrl.versions.length-1)" value="{{version.object_version}}">Version {{version.object_version}}</option>
++            </select>
++        </div>
++        <div class="compare-query-revert-wrapper hidden"><a ng-click="$ctrl.revertQuery()" class="btn btn-default">Revert to version {{$ctrl.previousQueryVersion + 1}}</a></div>
++    </div>
++    <div>
++        <h5>Current Version {{$ctrl.currentQuery.version}}</h5>
++        <div class="diff-content">
++            <p id="current-query-diff">
++                <span ng-class="{'diff-added': part.added, 'diff-removed': part.removed}" ng-repeat="part in $ctrl.currentDiff">
++                    {{part.value}}
++                </span>
++            </p>
++        </div>
++    </div>
++    <div>
++        <h5>Previous Version {{$ctrl.previousQueryVersion + 1}}</h5>
++        <div class="diff-content">
++            <p>{{$ctrl.previousQuery}}</p>
++        </div>
++    </div>
++</div>
+diff --git a/client/app/pages/queries/compare-query-dialog.js b/client/app/pages/queries/compare-query-dialog.js
+new file mode 100644
+index 00000000..e95e9cb8
+--- /dev/null
++++ b/client/app/pages/queries/compare-query-dialog.js
+@@ -0,0 +1,66 @@
++import * as jsDiff from 'diff';
++import template from './compare-query-dialog.html';
++import './compare-query-dialog.css';
++
++const CompareQueryDialog = {
++  controller(clientConfig, $http) {
++    'ngInject';
++
++    this.currentQuery = this.resolve.query;
++    this.previousQuery = '';
++    this.currentDiff = [];
++    this.previousDiff = [];
++    this.versions = [];
++    this.previousQueryVersion = this.currentQuery.version - 2; // due to 0-indexed versions[]
++
++    this.compareQueries = (isInitialLoad) => {
++      if (!isInitialLoad) {
++        this.previousQueryVersion = document.getElementById('version-choice').value - 1; // due to 0-indexed versions[]
++      }
++
++      this.previousQuery = this.versions[this.previousQueryVersion].change.query.current;
++      this.currentDiff = jsDiff.diffChars(this.previousQuery, this.currentQuery.query);
++      document.querySelector('.compare-query-revert-wrapper').classList.remove('hidden');
++    };
++
++    this.revertQuery = () => {
++      this.resolve.query.query = this.previousQuery;
++      this.resolve.saveQuery();
++
++      // Close modal.
++      this.dismiss();
++    };
++
++    $http.get(`/api/queries/${this.currentQuery.id}/version`).then((response) => {
++      this.versions = response.data;
++
++      const compare = (a, b) => {
++        if (a.object_version < b.object_version) {
++          return -1;
++        } else if (a.object_version > b.object_version) {
++          return 1;
++        }
++        return 0;
++      };
++
++      this.versions.sort(compare);
++      this.compareQueries(true);
++    });
++  },
++  scope: {
++    query: '=',
++    saveQuery: '<',
++  },
++  bindings: {
++    resolve: '<',
++    close: '&',
++    dismiss: '&',
++  },
++  template,
++};
++
++export default function init(ngModule) {
++  ngModule.component('compareQueryDialog', CompareQueryDialog);
++}
++
++init.init = true;
+diff --git a/client/app/pages/queries/query.html b/client/app/pages/queries/query.html
+index a950b2b5..1744f9be 100644
+--- a/client/app/pages/queries/query.html
++++ b/client/app/pages/queries/query.html
+@@ -69,6 +69,9 @@
+                 <li ng-if="query.id != undefined">
+                   <a ng-click="showApiKey()">Show API Key</a>
+                 </li>
++                <li ng-show="canEdit" ng-if="query.id && (query.version > 1)">
++                  <a ng-click="compareQueryVersion()">Query Versions</a>
++                </li>
+               </ul>
+             </div>
+           </div>
+diff --git a/client/app/pages/queries/view.js b/client/app/pages/queries/view.js
+index ae52974e..8d6c6474 100644
+--- a/client/app/pages/queries/view.js
++++ b/client/app/pages/queries/view.js
+@@ -393,6 +393,21 @@ function QueryViewCtrl(
+     });
+   };
+ 
++  $scope.compareQueryVersion = () => {
++    if (!$scope.query.query) {
++      return;
++    }
++
++    $uibModal.open({
++      windowClass: 'modal-xl',
++      component: 'compareQueryDialog',
++      resolve: {
++        query: $scope.query,
++        saveQuery: () => $scope.saveQuery,
++      },
++    });
++  };
++
+   $scope.$watch('query.name', () => {
+     Title.set($scope.query.name);
+   });
+diff --git a/package.json b/package.json
+index a4dc2719..908ced0c 100644
+--- a/package.json
++++ b/package.json
+@@ -58,6 +58,7 @@
+     "d3": "^3.5.17",
+     "d3-cloud": "^1.2.4",
+     "debug": "^3.1.0",
++    "diff": "^3.3.0",
+     "font-awesome": "^4.7.0",
+     "gridstack": "^0.3.0",
+     "hoist-non-react-statics": "^3.3.0",
+diff --git a/redash/handlers/api.py b/redash/handlers/api.py
+index 012c121f..75fdf768 100644
+--- a/redash/handlers/api.py
++++ b/redash/handlers/api.py
+@@ -35,6 +35,7 @@ from redash.handlers.queries import (MyQueriesResource, QueryArchiveResource,
+                                      QueryForkResource, QueryListResource,
+                                      QueryRecentResource, QueryRefreshResource,
+                                      QueryResource, QuerySearchResource,
++                                     QueryVersionListResource, ChangeResource,
+                                      QueryTagsResource)
+ from redash.handlers.query_results import (JobResource,
+                                            QueryResultDropdownResource,
+@@ -115,6 +116,8 @@ api.add_org_resource(MyQueriesResource, '/api/queries/my', endpoint='my_queries'
+ api.add_org_resource(QueryRefreshResource, '/api/queries/<query_id>/refresh', endpoint='query_refresh')
+ api.add_org_resource(QueryResource, '/api/queries/<query_id>', endpoint='query')
+ api.add_org_resource(QueryForkResource, '/api/queries/<query_id>/fork', endpoint='query_fork')
++api.add_org_resource(QueryVersionListResource, '/api/queries/<query_id>/version', endpoint='query_versions')
++api.add_org_resource(ChangeResource, '/api/changes/<change_id>', endpoint='changes')
+ 
+ api.add_org_resource(ObjectPermissionsListResource, '/api/<object_type>/<object_id>/acl', endpoint='object_permissions')
+ api.add_org_resource(CheckPermissionResource, '/api/<object_type>/<object_id>/acl/<access_type>', endpoint='check_permissions')
+diff --git a/redash/handlers/dashboards.py b/redash/handlers/dashboards.py
+index 954e9da4..869a0f59 100644
+--- a/redash/handlers/dashboards.py
++++ b/redash/handlers/dashboards.py
+@@ -105,6 +105,7 @@ class DashboardListResource(BaseResource):
+                                      user=self.current_user,
+                                      is_draft=True,
+                                      layout='[]')
++        dashboard.record_changes(changed_by=self.current_user)
+         models.db.session.add(dashboard)
+         models.db.session.commit()
+         return serialize_dashboard(dashboard)
+diff --git a/redash/handlers/queries.py b/redash/handlers/queries.py
+index 278ca545..7ff91eba 100644
+--- a/redash/handlers/queries.py
++++ b/redash/handlers/queries.py
+@@ -234,6 +234,7 @@ class QueryListResource(BaseQueryListResource):
+         query_def['org'] = self.current_org
+         query_def['is_draft'] = True
+         query = models.Query.create(**query_def)
++        query.record_changes(changed_by=self.current_user)
+         models.db.session.add(query)
+         models.db.session.commit()
+ 
+@@ -342,6 +343,7 @@ class QueryResource(BaseResource):
+ 
+         try:
+             self.update_model(query, query_def)
++            query.record_changes(self.current_user)
+             models.db.session.commit()
+         except StaleDataError:
+             abort(409)
+@@ -488,3 +490,19 @@ class QueryFavoriteListResource(BaseResource):
+         })
+ 
+         return response
++
++
++class QueryVersionListResource(BaseResource):
++    @require_permission('view_query')
++    def get(self, query_id):
++        results = models.Change.query.filter(
++            models.Change.object_id == query_id,
++            models.Change.object_type == 'queries',
++        )
++        return [q.to_dict() for q in results]
++
++
++class ChangeResource(BaseResource):
++    @require_permission('view_query')
++    def get(self, change_id):
++        return models.Change.query.get(change_id).to_dict()
+diff --git a/redash/models/__init__.py b/redash/models/__init__.py
+index a4160ea0..97599841 100644
+--- a/redash/models/__init__.py
++++ b/redash/models/__init__.py
+@@ -397,7 +397,7 @@ def should_schedule_next(previous_iteration, now, interval, time=None, day_of_we
+               'is_archived', 'is_draft', 'schedule', 'schedule_failures')
+ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
+     id = Column(db.Integer, primary_key=True)
+-    version = Column(db.Integer, default=1)
++    version = Column(db.Integer, default=0)
+     org_id = Column(db.Integer, db.ForeignKey('organizations.id'))
+     org = db.relationship(Organization, backref="queries")
+     data_source_id = Column(db.Integer, db.ForeignKey("data_sources.id"), nullable=True)
+@@ -646,6 +646,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
+ 
+         # Query.create will add default TABLE visualization, so use constructor to create bare copy of query
+         forked_query = Query(name=u'Copy of (#{}) {}'.format(self.id, self.name), user=user, **kwargs)
++        forked_query.record_changes(changed_by=user)
+ 
+         for v in self.visualizations:
+             forked_v = v.copy()
+diff --git a/redash/models/changes.py b/redash/models/changes.py
+index 1529c4b3..82ac0f1c 100644
+--- a/redash/models/changes.py
++++ b/redash/models/changes.py
+@@ -22,7 +22,6 @@ class Change(GFKBase, db.Model):
+             'id': self.id,
+             'object_id': self.object_id,
+             'object_type': self.object_type,
+-            'change_type': self.change_type,
+             'object_version': self.object_version,
+             'change': self.change,
+             'created_at': self.created_at
+@@ -49,10 +48,6 @@ class ChangeTrackingMixin(object):
+     skipped_fields = ('id', 'created_at', 'updated_at', 'version')
+     _clean_values = None
+ 
+-    def __init__(self, *a, **kw):
+-        super(ChangeTrackingMixin, self).__init__(*a, **kw)
+-        self.record_changes(self.user)
+-
+     def prep_cleanvalues(self):
+         self.__dict__['_clean_values'] = {}
+         for attr in inspect(self.__class__).column_attrs:
+@@ -63,11 +58,9 @@ class ChangeTrackingMixin(object):
+     def __setattr__(self, key, value):
+         if self._clean_values is None:
+             self.prep_cleanvalues()
+-        for attr in inspect(self.__class__).column_attrs:
+-            col, = attr.columns
+-            previous = getattr(self, attr.key, None)
+-            self._clean_values[col.name] = previous
+-
++        if key in inspect(self.__class__).column_attrs:
++            previous = getattr(self, key, None)
++            self._clean_values[key] = previous
+         super(ChangeTrackingMixin, self).__setattr__(key, value)
+ 
+     def record_changes(self, changed_by):
+@@ -77,10 +70,16 @@ class ChangeTrackingMixin(object):
+         for attr in inspect(self.__class__).column_attrs:
+             col, = attr.columns
+             if attr.key not in self.skipped_fields:
+-                changes[col.name] = {'previous': self._clean_values[col.name],
+-                                     'current': getattr(self, attr.key)}
+-
+-        db.session.add(Change(object=self,
+-                              object_version=self.version,
+-                              user=changed_by,
+-                              change=changes))
++                prev = self._clean_values[col.name]
++                current = getattr(self, attr.key)
++                if prev != current:
++                    changes[col.name] = {'previous': prev, 'current': current}
++
++        if changes:
++            self.version = (self.version or 0) + 1
++            change = Change(object=self,
++                            object_version=self.version,
++                            user=changed_by,
++                            change=changes)
++            db.session.add(change)
++            return change
+diff --git a/tests/handlers/test_queries.py b/tests/handlers/test_queries.py
+index 3a898b1f..1c2485db 100644
+--- a/tests/handlers/test_queries.py
++++ b/tests/handlers/test_queries.py
+@@ -406,3 +406,29 @@ WHERE x=1
+ 
+         self.assertEqual(rv.json['query'], expected)
+ 
++
++class ChangeResourceTests(BaseTestCase):
++    def test_list(self):
++        query = self.factory.create_query()
++        query.name = 'version A'
++        query.record_changes(self.factory.user)
++        query.name = 'version B'
++        query.record_changes(self.factory.user)
++        rv = self.make_request('get', '/api/queries/{0}/version'.format(query.id))
++        self.assertEquals(rv.status_code, 200)
++        self.assertEquals(len(rv.json), 2)
++        self.assertEquals(rv.json[0]['change']['name']['current'], 'version A')
++        self.assertEquals(rv.json[1]['change']['name']['current'], 'version B')
++
++    def test_get(self):
++        query = self.factory.create_query()
++        query.name = 'version A'
++        ch1 = query.record_changes(self.factory.user)
++        query.name = 'version B'
++        ch2 = query.record_changes(self.factory.user)
++        rv1 = self.make_request('get', '/api/changes/' + str(ch1.id))
++        self.assertEqual(rv1.status_code, 200)
++        self.assertEqual(rv1.json['change']['name']['current'], 'version A')
++        rv2 = self.make_request('get', '/api/changes/' + str(ch2.id))
++        self.assertEqual(rv2.status_code, 200)
++        self.assertEqual(rv2.json['change']['name']['current'], 'version B')
+diff --git a/tests/models/test_changes.py b/tests/models/test_changes.py
+index 124e17a3..3d7c7496 100644
+--- a/tests/models/test_changes.py
++++ b/tests/models/test_changes.py
+@@ -56,23 +56,12 @@ class TestLogChange(BaseTestCase):
+         obj.record_changes(changed_by=self.factory.user)
+         obj.name = 'Query 2'
+         obj.description = 'description'
+-        db.session.flush()
+         obj.record_changes(changed_by=self.factory.user)
+ 
+         change = Change.last_change(obj)
+ 
+         self.assertIsNotNone(change)
+-        # TODO: https://github.com/getredash/redash/issues/1550
+-        # self.assertEqual(change.object_version, 2)
++        self.assertEqual(change.object_version, 2)
+         self.assertEqual(change.object_version, obj.version)
+         self.assertIn('name', change.change)
+         self.assertIn('description', change.change)
+-
+-    def test_logs_create_method(self):
+-        q = Query(name='Query', description='', query_text='',
+-                  user=self.factory.user, data_source=self.factory.data_source,
+-                  org=self.factory.org)
+-        change = Change.last_change(q)
+-
+-        self.assertIsNotNone(change)
+-        self.assertEqual(q.user, change.user)

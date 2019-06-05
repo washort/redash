@@ -1,0 +1,805 @@
+Bottom: 557ac88778798155ac8936fb9d3bdfb005c41a02
+Top:    ddad1786ba96c0662804baa90ee8259129a789a8
+Author: Marina Samuel <msamuel@mozilla.com>
+Date:   2018-11-01 12:11:32 -0400
+
+Schema Improvements Part 2: Add data source config options.
+
+
+---
+diff --git a/client/app/assets/less/redash/redash-newstyle.less b/client/app/assets/less/redash/redash-newstyle.less
+index 86baa41c..5cf914c1 100644
+--- a/client/app/assets/less/redash/redash-newstyle.less
++++ b/client/app/assets/less/redash/redash-newstyle.less
+@@ -78,6 +78,10 @@ body {
+   }
+ }
+ 
++.admin-schema-editor {
++  padding: 50px 0;
++}
++
+ .creation-container {
+   h5 {
+     color: #a7a7a7;
+diff --git a/client/app/components/proptypes.js b/client/app/components/proptypes.js
+index b569545a..f2760317 100644
+--- a/client/app/components/proptypes.js
++++ b/client/app/components/proptypes.js
+@@ -16,10 +16,11 @@ export const DataSourceMetadata = PropTypes.shape({
+   name: PropTypes.string,
+   type: PropTypes.string,
+   example: PropTypes.string,
++  description: PropTypes.string,
+ });
+ 
+ export const Table = PropTypes.shape({
+-  columns: PropTypes.arrayOf(PropTypes.string).isRequired,
++  columns: PropTypes.arrayOf(PropTypes.object).isRequired,
+ });
+ 
+ export const Schema = PropTypes.arrayOf(Table);
+@@ -38,6 +39,13 @@ export const RefreshScheduleDefault = {
+   until: null,
+ };
+ 
++export const TableMetadata = PropTypes.shape({
++  key: PropTypes.number.isRequired,
++  name: PropTypes.string.isRequired,
++  description: PropTypes.string,
++  visible: PropTypes.bool.isRequired,
++});
++
+ export const Field = PropTypes.shape({
+   name: PropTypes.string.isRequired,
+   title: PropTypes.string,
+diff --git a/client/app/components/queries/SchemaData.jsx b/client/app/components/queries/SchemaData.jsx
+index 664ec279..e1ad6bfa 100644
+--- a/client/app/components/queries/SchemaData.jsx
++++ b/client/app/components/queries/SchemaData.jsx
+@@ -19,11 +19,13 @@ class SchemaData extends React.PureComponent {
+     show: PropTypes.bool.isRequired,
+     onClose: PropTypes.func.isRequired,
+     tableName: PropTypes.string,
++    tableDescription: PropTypes.string,
+     tableMetadata: PropTypes.arrayOf(DataSourceMetadata),
+   };
+ 
+   static defaultProps = {
+     tableName: '',
++    tableDescription: '',
+     tableMetadata: [],
+   };
+ 
+@@ -42,9 +44,22 @@ class SchemaData extends React.PureComponent {
+       render: textWrapRenderer,
+     }];
+ 
++    const hasDescription =
++      this.props.tableMetadata.some(columnMetadata => columnMetadata.description);
++
+     const hasExample =
+       this.props.tableMetadata.some(columnMetadata => columnMetadata.example);
+ 
++    if (hasDescription) {
++      columns.push({
++        title: 'Description',
++        dataIndex: 'description',
++        width: 400,
++        key: 'description',
++        render: textWrapRenderer,
++      });
++    }
++
+     if (hasExample) {
+       columns.push({
+         title: 'Example',
+@@ -64,6 +79,9 @@ class SchemaData extends React.PureComponent {
+         onClose={this.props.onClose}
+         visible={this.props.show}
+       >
++        <h5 className="table-description">
++          {this.props.tableDescription}
++        </h5>
+         <Table
+           dataSource={this.props.tableMetadata}
+           pagination={false}
+diff --git a/client/app/components/queries/schema-browser.html b/client/app/components/queries/schema-browser.html
+index da961341..5f452acf 100644
+--- a/client/app/components/queries/schema-browser.html
++++ b/client/app/components/queries/schema-browser.html
+@@ -19,7 +19,7 @@
+   </div>
+ 
+   <div class="schema-browser" vs-repeat vs-size="$ctrl.getSize(table)">
+-    <div ng-repeat="table in $ctrl.schema | filter:$ctrl.schemaFilterObject | filter: {name: '!'+$ctrl.versionFilter}">
++    <div ng-repeat="table in $ctrl.schema | filter:$ctrl.schemaFilterObject | filter: {name: '!'+$ctrl.versionFilter} | filter:$ctrl.itemExists track by table.name">
+       <div class="table-name" ng-click="$ctrl.showTable(table)">
+         <i class="fa fa-table"></i>
+         <strong>
+@@ -27,7 +27,7 @@
+           <span ng-if="table.size !== undefined"> ({{table.size}})</span>
+         </strong>
+         <i ng-if="table.hasColumnMetadata" class="fa fa-question-circle info" title="More Info" aria-hidden="true"
+-          ng-click="openSchemaInfo($event, table.name, table.columns)"></i>
++          ng-click="openSchemaInfo($event, table)"></i>
+         <i class="fa fa-angle-double-right copy-to-editor" aria-hidden="true"
+           ng-click="$ctrl.itemSelected($event, [table.name])"></i>
+       </div>
+@@ -43,6 +43,7 @@
+   <schema-data
+     show="showSchemaInfo"
+     table-name="tableName"
++    table-description="tableDescription"
+     table-metadata="tableMetadata"
+     on-close="closeSchemaInfo"
+   ></schema-data>
+diff --git a/client/app/components/queries/schema-browser.js b/client/app/components/queries/schema-browser.js
+index d6f692e7..c5ab533f 100644
+--- a/client/app/components/queries/schema-browser.js
++++ b/client/app/components/queries/schema-browser.js
+@@ -12,9 +12,10 @@ function SchemaBrowserCtrl($rootScope, $scope) {
+   };
+ 
+   $scope.showSchemaInfo = false;
+-  $scope.openSchemaInfo = ($event, tableName, tableMetadata) => {
+-    $scope.tableName = tableName;
+-    $scope.tableMetadata = tableMetadata;
++  $scope.openSchemaInfo = ($event, table) => {
++    $scope.tableName = table.name;
++    $scope.tableDescription = table.description;
++    $scope.tableMetadata = table.columns;
+     $scope.showSchemaInfo = true;
+     $event.stopPropagation();
+   };
+@@ -45,6 +46,13 @@ function SchemaBrowserCtrl($rootScope, $scope) {
+     }
+   };
+ 
++  this.itemExists = (item) => {
++    if ('visible' in item) {
++      return item.visible;
++    }
++    return false;
++  };
++
+   this.itemSelected = ($event, hierarchy) => {
+     $rootScope.$broadcast('query-editor.command', 'paste', hierarchy.join('.'));
+     $event.preventDefault();
+diff --git a/client/app/pages/data-sources/schema-table-components/EditableTable.jsx b/client/app/pages/data-sources/schema-table-components/EditableTable.jsx
+new file mode 100644
+index 00000000..006a18cd
+--- /dev/null
++++ b/client/app/pages/data-sources/schema-table-components/EditableTable.jsx
+@@ -0,0 +1,86 @@
++import React from 'react';
++import Form from 'antd/lib/form';
++import Input from 'antd/lib/input';
++import PropTypes from 'prop-types';
++import { TableMetadata } from '@/components/proptypes';
++import TableVisibilityCheckbox from './TableVisibilityCheckbox';
++import './schema-table.css';
++
++const FormItem = Form.Item;
++const { TextArea } = Input;
++export const EditableContext = React.createContext();
++
++// eslint-disable-next-line react/prop-types
++const EditableRow = ({ form, index, ...props }) => (
++  <EditableContext.Provider value={form}>
++    <tr {...props} />
++  </EditableContext.Provider>
++);
++
++export const EditableFormRow = Form.create()(EditableRow);
++
++export class EditableCell extends React.Component {
++  static propTypes = {
++    dataIndex: PropTypes.string,
++    input_type: PropTypes.string,
++    editing: PropTypes.bool,
++    record: TableMetadata,
++  };
++
++  static defaultProps = {
++    dataIndex: undefined,
++    input_type: undefined,
++    editing: false,
++    record: {},
++  };
++
++  constructor(props) {
++    super(props);
++    this.state = {
++      visible: this.props.record ? this.props.record.visible : false,
++    };
++  }
++
++  onChange = () => {
++    this.setState({ visible: !this.state.visible });
++  }
++
++  getInput = () => {
++    if (this.props.input_type === 'visible') {
++      return (
++        <TableVisibilityCheckbox
++          visible={this.state.visible}
++          onChange={this.onChange}
++        />);
++    }
++    return <TextArea className="table-textarea" placeholder="Enter table description..." style={{ resize: 'vertical' }} />;
++  };
++
++  render() {
++    const {
++      editing,
++      dataIndex,
++      record,
++      ...restProps
++    } = this.props;
++
++    return (
++      <EditableContext.Consumer>
++        {(form) => {
++          const { getFieldDecorator } = form;
++          return (
++            <td {...restProps}>
++              {editing ? (
++                <FormItem style={{ margin: 0 }}>
++                  {getFieldDecorator(dataIndex, {
++                    initialValue: record[dataIndex],
++                  })(this.getInput()) }
++                </FormItem>
++              ) : restProps.children}
++            </td>
++          );
++        }}
++      </EditableContext.Consumer>
++    );
++  }
++}
+diff --git a/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx b/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx
+new file mode 100644
+index 00000000..af4238a1
+--- /dev/null
++++ b/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx
+@@ -0,0 +1,264 @@
++import React from 'react';
++import { react2angular } from 'react2angular';
++import PropTypes from 'prop-types';
++import Table from 'antd/lib/table';
++import Popconfirm from 'antd/lib/popconfirm';
++import { Schema } from '@/components/proptypes';
++import { EditableCell, EditableFormRow, EditableContext } from './EditableTable';
++import TableVisibilityCheckbox from './TableVisibilityCheckbox';
++
++import './schema-table.css';
++
++function fetchTableData(schema) {
++  return schema.map(tableData => ({
++    key: tableData.id,
++    name: tableData.name,
++    description: tableData.description || '',
++    visible: tableData.visible,
++    columns: tableData.columns,
++  }));
++}
++
++const components = {
++  body: {
++    row: EditableFormRow,
++    cell: EditableCell,
++  },
++};
++
++class SchemaTable extends React.Component {
++  static propTypes = {
++    schema: Schema, // eslint-disable-line react/no-unused-prop-types
++    updateSchema: PropTypes.func.isRequired,
++  };
++
++  static defaultProps = {
++    schema: null,
++  };
++
++  constructor(props) {
++    super(props);
++    this.state = { data: [], editingKey: '' };
++    this.columns = [{
++      title: 'Table Name',
++      dataIndex: 'name',
++      width: '20%',
++      key: 'name',
++    }, {
++      title: 'Table Description',
++      dataIndex: 'description',
++      width: '52%',
++      key: 'description',
++      editable: true,
++      render: this.truncateDescriptionText,
++    }, {
++      title: 'Visibility',
++      dataIndex: 'visible',
++      width: '13%',
++      key: 'visible',
++      editable: true,
++      render: (text, record) => (
++        <div>
++          <TableVisibilityCheckbox
++            disabled
++            visible={record.visible}
++          />
++        </div>
++      ),
++    }, {
++      title: '',
++      width: '15%',
++      dataIndex: 'edit',
++      key: 'edit',
++      // Purposely calling fieldEditor() instead of setting render() to it
++      // because render() will pass a different third argument than what
++      // fieldEditory() takes
++      render: (text, record) => this.fieldEditor(text, record),
++    }];
++  }
++
++  static getDerivedStateFromProps(nextProps, prevState) {
++    if (nextProps.schema && prevState.data.length === 0) {
++      return {
++        data: fetchTableData(nextProps.schema),
++        editingKey: prevState.editingKey,
++      };
++    }
++    return prevState;
++  }
++
++  expandedRowRender = (tableData) => {
++    const columns = [
++      {
++        title: 'Column Name',
++        dataIndex: 'name',
++        key: 'name',
++        width: '15%',
++      }, {
++        title: 'Column Type',
++        dataIndex: 'type',
++        key: 'type',
++        width: '15%',
++      }, {
++        title: 'Column Example',
++        dataIndex: 'example',
++        key: 'example',
++        width: '20%',
++      }, {
++        title: 'Column Description',
++        dataIndex: 'description',
++        key: 'description',
++        width: '35%',
++        editable: true,
++        render: this.truncateDescriptionText,
++        onCell: record => ({
++          record,
++          input_type: 'text',
++          dataIndex: 'description',
++          title: 'Column Description',
++          editing: this.isEditing(record),
++        }),
++      },
++      {
++        title: '',
++        width: '15%',
++        dataIndex: 'edit',
++        key: 'edit',
++        render: (text, record) => this.fieldEditor(text, record, tableData),
++      },
++    ];
++
++    return (
++      <Table
++        components={components}
++        columns={columns}
++        dataSource={tableData.columns}
++        rowClassName="editable-row"
++        pagination={false}
++      />
++    );
++  }
++
++  truncateDescriptionText = (text) => {
++    if (!text) {
++      return;
++    }
++    const MAX_CHARACTER_COUNT = 305;
++    const addEllipses = text.length > MAX_CHARACTER_COUNT;
++    return (
++      <div title={text}>
++        {`${text.replace(/\n/g, ' ').substring(0, MAX_CHARACTER_COUNT)}${addEllipses ? '...' : ''}`}
++      </div>
++    );
++  }
++
++  fieldEditor(text, record, tableData) {
++    const editable = this.isEditing(record);
++    const tableKey = tableData ? tableData.key : record.key;
++    const columnKey = tableData ? record.key : undefined;
++    return (
++      <div>
++        {editable ? (
++          <span>
++            <EditableContext.Consumer>
++              {form => (
++                <a
++                  href="javascript:;"
++                  onClick={() => this.save(form, tableKey, columnKey)}
++                  style={{ marginRight: 8 }}
++                >
++                  Save
++                </a>
++              )}
++            </EditableContext.Consumer>
++            <Popconfirm
++              title="Sure to cancel?"
++              onConfirm={() => this.cancel(record.key)}
++            >
++              <a>Cancel</a>
++            </Popconfirm>
++          </span>
++        ) : (
++          <a onClick={() => this.edit(record.key)}>Edit</a>
++        )}
++      </div>
++    );
++  }
++
++  cancel() {
++    this.setState({ editingKey: '' });
++  }
++
++  edit(key) {
++    this.setState({ editingKey: key });
++  }
++
++  isEditing(record) {
++    return record.key === this.state.editingKey;
++  }
++
++  save(form, tableKey, columnKey) {
++    form.validateFields((error, editedFields) => {
++      if (error) {
++        return;
++      }
++      const newData = [...this.state.data];
++      let spliceIndex = newData.findIndex(item => tableKey === item.key);
++
++      if (spliceIndex < 0) {
++        return;
++      }
++
++      const tableRow = newData[spliceIndex];
++      let dataToUpdate = newData;
++      let rowToUpdate = tableRow;
++
++      const columnIndex = tableRow.columns.findIndex(item => columnKey === item.key);
++      const columnRow = tableRow.columns[columnIndex];
++      if (columnKey) {
++        dataToUpdate = tableRow.columns;
++        spliceIndex = columnIndex;
++        rowToUpdate = columnRow;
++      }
++
++      dataToUpdate.splice(spliceIndex, 1, {
++        ...rowToUpdate,
++        ...editedFields,
++      });
++      this.props.updateSchema(editedFields, tableRow.key, columnRow ? columnRow.key : undefined);
++      this.setState({ data: newData, editingKey: '' });
++    });
++  }
++
++  render() {
++    const columns = this.columns.map(col => ({
++      ...col,
++      onCell: record => ({
++        record,
++        input_type: col.dataIndex,
++        dataIndex: col.dataIndex,
++        title: col.title,
++        editing: col.editable ? this.isEditing(record) : false,
++      }),
++    }));
++
++    return (
++      <Table
++        components={components}
++        bordered
++        side="middle"
++        dataSource={this.state.data}
++        pagination={false}
++        columns={columns}
++        rowClassName="editable-row"
++        expandedRowRender={this.expandedRowRender}
++      />
++    );
++  }
++}
++
++export default function init(ngModule) {
++  ngModule.component('schemaTable', react2angular(SchemaTable, null, []));
++}
++
++init.init = true;
+diff --git a/client/app/pages/data-sources/schema-table-components/TableVisibilityCheckbox.jsx b/client/app/pages/data-sources/schema-table-components/TableVisibilityCheckbox.jsx
+new file mode 100644
+index 00000000..17a7ac7f
+--- /dev/null
++++ b/client/app/pages/data-sources/schema-table-components/TableVisibilityCheckbox.jsx
+@@ -0,0 +1,29 @@
++import React from 'react';
++import PropTypes from 'prop-types';
++import Checkbox from 'antd/lib/checkbox';
++
++
++export default class TableVisibilityCheckbox extends React.PureComponent {
++  static propTypes = {
++    visible: PropTypes.bool.isRequired,
++    onChange: PropTypes.func,
++    disabled: PropTypes.bool,
++  };
++
++  static defaultProps = {
++    disabled: false,
++    onChange: undefined,
++  };
++
++  render() {
++    return (
++      <Checkbox
++        checked={this.props.visible}
++        onChange={this.props.onChange}
++        disabled={this.props.disabled}
++      >
++        {this.props.visible ? 'Visible' : 'Hidden'}
++      </Checkbox>
++    );
++  }
++}
+diff --git a/client/app/pages/data-sources/schema-table-components/schema-table.css b/client/app/pages/data-sources/schema-table-components/schema-table.css
+new file mode 100644
+index 00000000..79017732
+--- /dev/null
++++ b/client/app/pages/data-sources/schema-table-components/schema-table.css
+@@ -0,0 +1,4 @@
++.editable-row, .table-description {
++  word-break: break-all;
++  white-space: pre-line;
++}
+diff --git a/client/app/services/data-source.js b/client/app/services/data-source.js
+index efd4422a..6f6eda83 100644
+--- a/client/app/services/data-source.js
++++ b/client/app/services/data-source.js
+@@ -18,6 +18,7 @@ function DataSourceService($q, $resource, $http) {
+ 
+   const actions = {
+     get: { method: 'GET', cache: false, isArray: false },
++    post: { method: 'POST', cache: false, isArray: false },
+     query: { method: 'GET', cache: false, isArray: true },
+     save: { method: 'POST' },
+     types: {
+@@ -36,6 +37,11 @@ function DataSourceService($q, $resource, $http) {
+ 
+   const DataSourceResource = $resource('api/data_sources/:id', { id: '@id' }, actions);
+ 
++  DataSourceResource.prototype.updateSchema = function updateSchema(schema, tableId, columnId) {
++    const data = { tableId, columnId, schema };
++    return $http.post(`api/data_sources/${this.id}/schema`, data);
++  };
++
+   DataSourceResource.prototype.getSchema = function getSchema(refresh = false) {
+     if (this._schema === undefined || refresh) {
+       return fetchSchema(this.id, refresh).then((response) => {
+diff --git a/migrations/versions/cf135a57332e_.py b/migrations/versions/cf135a57332e_.py
+new file mode 100644
+index 00000000..3f58c97b
+--- /dev/null
++++ b/migrations/versions/cf135a57332e_.py
+@@ -0,0 +1,26 @@
++"""Add column description and table visibility fields
++
++Revision ID: cf135a57332e
++Revises: 6adb92e75691
++Create Date: 2019-02-05 19:52:48.233070
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++# revision identifiers, used by Alembic.
++revision = 'cf135a57332e'
++down_revision = '6adb92e75691'
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    op.add_column('column_metadata', sa.Column('description', sa.String(length=4096), nullable=True))
++    op.add_column('table_metadata', sa.Column('visible', sa.Boolean(), nullable=False, server_default='True'))
++
++
++def downgrade():
++    op.drop_column('table_metadata', 'visible')
++    op.drop_column('column_metadata', 'description')
+diff --git a/redash/handlers/data_sources.py b/redash/handlers/data_sources.py
+index e42393bf..52678606 100644
+--- a/redash/handlers/data_sources.py
++++ b/redash/handlers/data_sources.py
+@@ -95,7 +95,7 @@ class DataSourceListResource(BaseResource):
+                 continue
+ 
+             try:
+-                d = ds.to_dict()
++                d = ds.to_dict(all=True)
+                 d['view_only'] = all(project(ds.groups, self.current_user.group_ids).values())
+                 response[ds.id] = d
+             except AttributeError:
+@@ -151,6 +151,12 @@ class DataSourceListResource(BaseResource):
+ 
+ 
+ class DataSourceSchemaResource(BaseResource):
++    @require_admin
++    def post(self, data_source_id):
++        data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
++        new_schema_data = request.get_json(force=True)
++        models.DataSource.save_schema(new_schema_data)
++
+     def get(self, data_source_id):
+         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+         require_access(data_source, self.current_user, view_only)
+diff --git a/redash/models/__init__.py b/redash/models/__init__.py
+index 1c73df63..b2043fcd 100644
+--- a/redash/models/__init__.py
++++ b/redash/models/__init__.py
+@@ -73,6 +73,7 @@ class TableMetadata(TimestampMixin, db.Model):
+     org_id = Column(db.Integer, db.ForeignKey("organizations.id"))
+     data_source_id = Column(db.Integer, db.ForeignKey("data_sources.id", ondelete="CASCADE"))
+     exists = Column(db.Boolean, default=True)
++    visible = Column(db.Boolean, default=True)
+     name = Column(db.String(255))
+     description = Column(db.String(4096), nullable=True)
+     column_metadata = Column(db.Boolean, default=False)
+@@ -90,6 +91,7 @@ class TableMetadata(TimestampMixin, db.Model):
+             'org_id': self.org_id,
+             'data_source_id': self.data_source_id,
+             'exists': self.exists,
++            'visible': self.visible,
+             'name': self.name,
+             'description': self.description,
+             'column_metadata': self.column_metadata,
+@@ -108,6 +110,7 @@ class ColumnMetadata(TimestampMixin, db.Model):
+     type = Column(db.String(255), nullable=True)
+     example = Column(db.String(4096), nullable=True)
+     exists = Column(db.Boolean, default=True)
++    description = Column(db.String(4096), nullable=True)
+ 
+     __tablename__ = 'column_metadata'
+ 
+@@ -123,6 +126,7 @@ class ColumnMetadata(TimestampMixin, db.Model):
+             'type': self.type,
+             'example': self.example,
+             'exists': self.exists,
++            'description': self.description,
+         }
+ 
+ 
+@@ -199,6 +203,20 @@ class DataSource(BelongsToOrgMixin, db.Model):
+     def get_by_id(cls, _id):
+         return cls.query.filter(cls.id == _id).one()
+ 
++    @classmethod
++    def save_schema(self, schema_info):
++        if 'columnId' in schema_info:
++            ColumnMetadata.query.filter(
++                ColumnMetadata.id == schema_info['columnId'],
++                ColumnMetadata.table_id == schema_info['tableId'],
++            ).update(schema_info['schema'])
++        else:
++            TableMetadata.query.filter(
++                TableMetadata.id == schema_info['tableId']
++            ).update(schema_info['schema'])
++
++        db.session.commit()
++
+     def delete(self):
+         Query.query.filter(Query.data_source == self).update(dict(data_source_id=None, latest_query_data_id=None))
+         QueryResult.query.filter(QueryResult.data_source == self).delete()
+@@ -227,14 +245,18 @@ class DataSource(BelongsToOrgMixin, db.Model):
+                 'name': column.name,
+                 'type': column.type,
+                 'exists': column.exists,
+-                'example': column.example
++                'example': column.example,
++                'description': column.description,
+             })
+ 
+         for table in tables:
+             table_info = {
++                'id': table.id,
+                 'name': table.name,
+                 'exists': table.exists,
++                'visible': table.visible,
+                 'hasColumnMetadata': table.column_metadata,
++                'description': table.description,
+                 'columns': []}
+ 
+             table_info['columns'] = sorted(
+diff --git a/tests/models/test_data_sources.py b/tests/models/test_data_sources.py
+index 429cbbd5..c7406bf3 100644
+--- a/tests/models/test_data_sources.py
++++ b/tests/models/test_data_sources.py
+@@ -13,33 +13,29 @@ class DataSourceTest(BaseTestCase):
+             data_source_id=data_source.id,
+             org_id=data_source.org_id
+         )
+-        column_metadata = self.factory.create_column_metadata(
+-            table_id=table_metadata.id,
+-            org_id=data_source.org_id,
+-            type='boolean',
+-            example=True,
+-            exists=False
+-        )
+ 
+         # Create a non-existing table with an existing column
+-        table_metadata = self.factory.create_table_metadata(
++        table_metadata2 = self.factory.create_table_metadata(
+             data_source_id=data_source.id,
+             org_id=data_source.org_id,
+             name='table_doesnt_exist',
+             exists=False
+         )
+         column_metadata = self.factory.create_column_metadata(
+-            table_id=table_metadata.id,
++            table_id=table_metadata2.id,
+             org_id=data_source.org_id,
+             type='boolean',
+             example=True,
+         )
+ 
+         return_value = [{
++            'id': table_metadata.id,
+             'name': 'table',
+             'hasColumnMetadata': False,
+             'exists': True,
+-            'columns': []
++            'columns': [],
++            'visible': True,
++            'description': None,
+         }]
+         schema = data_source.get_schema()
+         self.assertEqual(return_value, schema)
+diff --git a/tests/tasks/test_refresh_schemas.py b/tests/tasks/test_refresh_schemas.py
+index cdad208b..1bcb3b14 100644
+--- a/tests/tasks/test_refresh_schemas.py
++++ b/tests/tasks/test_refresh_schemas.py
+@@ -24,6 +24,7 @@ class TestRefreshSchemas(BaseTestCase):
+             'name': self.COLUMN_NAME,
+             'type': self.COLUMN_TYPE,
+             'example': self.COLUMN_EXAMPLE,
++            'description': None,
+             'exists': True,
+         }
+ 
+@@ -67,12 +68,14 @@ class TestRefreshSchemas(BaseTestCase):
+             refresh_schemas()
+             refresh_job.assert_called()
+ 
++
+     def test_refresh_schema_creates_tables(self):
+         EXPECTED_TABLE_METADATA = {
+             'id': 1,
+             'org_id': 1,
+             'exists': True,
+             'name': 'table',
++            'visible': True,
+             'sample_query': None,
+             'description': None,
+             'column_metadata': True,

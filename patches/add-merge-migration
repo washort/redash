@@ -1,0 +1,39 @@
+Bottom: 9797cbcfb664ee7d00c0408577a21d58a61d4673
+Top:    e77fd6a163c61d55405dad637f638a5c39936530
+Author: Marina Samuel <msamuel@mozilla.com>
+Date:   2019-03-26 15:38:59 -0400
+
+Add merge migration.
+
+
+---
+diff --git a/migrations/versions/151a4c333e96_.py b/migrations/versions/151a4c333e96_.py
+new file mode 100644
+index 00000000..0f9faa5a
+--- /dev/null
++++ b/migrations/versions/151a4c333e96_.py
+@@ -0,0 +1,24 @@
++"""empty message
++
++Revision ID: 151a4c333e96
++Revises: 2ba47e9812b1, e5c7a4e2df4d
++Create Date: 2019-03-26 19:32:29.052222
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++# revision identifiers, used by Alembic.
++revision = '151a4c333e96'
++down_revision = ('2ba47e9812b1', 'e5c7a4e2df4d')
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    pass
++
++
++def downgrade():
++    pass

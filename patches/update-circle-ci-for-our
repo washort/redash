@@ -1,0 +1,206 @@
+Bottom: b5e08ff263823becfc4b1a2c0534585550c06043
+Top:    bea1d9b0d2d853009505bf65672cf13cc8f460d2
+Author: Blake Imsland <blake@retroco.de>
+Date:   2017-04-19 10:23:14 -0700
+
+Update Circle CI for our workflow
+
+- Use new master / rc release release strategy (#440)
+- Migrate Circle CI 2.0 (#488, #502, #923)
+
+
+---
+diff --git a/.circleci/config.yml b/.circleci/config.yml
+index aa749ca4..3716753f 100644
+--- a/.circleci/config.yml
++++ b/.circleci/config.yml
+@@ -39,7 +39,7 @@ jobs:
+           name: Copy Test Results
+           command: |
+             mkdir -p /tmp/test-results/unit-tests
+-            docker cp tests:/app/coverage.xml ./coverage.xml 
++            docker cp tests:/app/coverage.xml ./coverage.xml
+             docker cp tests:/app/junit.xml /tmp/test-results/unit-tests/results.xml
+       - store_test_results:
+           path: /tmp/test-results
+@@ -65,30 +65,6 @@ jobs:
+       - run: npm run bundle
+       - run: npm test
+       - run: npm run lint
+-  frontend-e2e-tests:
+-    environment:
+-      COMPOSE_FILE: .circleci/docker-compose.cypress.yml
+-      COMPOSE_PROJECT_NAME: cypress
+-      PERCY_TOKEN_ENCODED: ZGRiY2ZmZDQ0OTdjMzM5ZWE0ZGQzNTZiOWNkMDRjOTk4Zjg0ZjMxMWRmMDZiM2RjOTYxNDZhOGExMjI4ZDE3MA==
+-      CYPRESS_PROJECT_ID_ENCODED: OTI0Y2th
+-      CYPRESS_RECORD_KEY_ENCODED: YzA1OTIxMTUtYTA1Yy00NzQ2LWEyMDMtZmZjMDgwZGI2ODgx
+-    docker:
+-      - image: circleci/node:8
+-    steps:
+-      - setup_remote_docker
+-      - checkout
+-      - run:
+-          name: Install npm dependencies
+-          command: |
+-            npm install
+-      - run:
+-          name: Setup Redash server
+-          command: |
+-            npm run cypress start
+-            docker-compose run cypress npm run cypress db-seed
+-      - run:
+-          name: Execute Cypress tests
+-          command: npm run cypress run-ci
+   build-tarball:
+     docker:
+       - image: circleci/node:8
+@@ -109,40 +85,77 @@ jobs:
+     steps:
+       - setup_remote_docker
+       - checkout
+-      - run: .circleci/update_version
+-      - run: .circleci/docker_build
++      - run: .circleci/update_version "master"
++      - run: .circleci/docker_build "master"
++  build-docker-image-rc:
++    docker:
++      - image: circleci/buildpack-deps:xenial
++    steps:
++      - setup_remote_docker
++      - checkout
++      - run: .circleci/update_version "rc"
++      - run: .circleci/docker_build "rc"
++  build-docker-image-tag:
++    docker:
++      - image: circleci/buildpack-deps:xenial
++    steps:
++      - setup_remote_docker
++      - checkout
++      - run: .circleci/update_version "$CIRCLE_TAG"
++      - run: .circleci/docker_build "rc"
++      # Create alias from tag to "latest":
++      - run: docker tag $DOCKERHUB_REPO:$CIRCLE_TAG $DOCKERHUB_REPO:latest
++      - run: docker push $DOCKERHUB_REPO:latest
+ workflows:
+   version: 2
+   build:
+     jobs:
+       - python-flake8-tests
+       - legacy-python-flake8-tests
+-      - backend-unit-tests
+-      - frontend-lint
++      - backend-unit-tests:
++          filters:
++            tags:
++              only: /^m[0-9]+(\.[0-9]+)?$/
++      - frontend-lint:
++          filters:
++            tags:
++              only: /^m[0-9]+(\.[0-9]+)?$/
+       - frontend-unit-tests:
+           requires:
+             - frontend-lint
+-      - frontend-e2e-tests:
+-          requires:
+-            - frontend-lint
++          filters:
++            tags:
++              only: /^m[0-9]+(\.[0-9]+)?$/
+       - build-tarball:
+           requires:
+             - backend-unit-tests
+             - frontend-unit-tests
+-            - frontend-e2e-tests
+           filters:
+             branches:
+               only:
+                 - master
+-                - /release\/.*/
+       - build-docker-image:
+           requires:
+             - backend-unit-tests
+             - frontend-unit-tests
+-            - frontend-e2e-tests
+           filters:
+             branches:
+               only:
+                 - master
+-                - preview-image
+-                - /release\/.*/
++      - build-docker-image-rc:
++          requires:
++            - backend-unit-tests
++            - frontend-unit-tests
++          filters:
++            branches:
++              only:
++                - release
++      - build-docker-image-tag:
++          requires:
++            - backend-unit-tests
++            - frontend-unit-tests
++          filters:
++            branches:
++              ignore: /.*/
++            tags:
++              only: /^m[0-9]+(\.[0-9]+)?$/
+diff --git a/.circleci/docker_build b/.circleci/docker_build
+index 50acc2f5..0de850df 100755
+--- a/.circleci/docker_build
++++ b/.circleci/docker_build
+@@ -1,17 +1,9 @@
+ #!/bin/bash
+-VERSION=$(jq -r .version package.json)
+-VERSION_TAG=$VERSION.b$CIRCLE_BUILD_NUM
++VERSION_TAG="$1"
+ 
+ docker login -u $DOCKER_USER -p $DOCKER_PASS
+ 
+-if [ $CIRCLE_BRANCH = master ] || [ $CIRCLE_BRANCH = preview-image ]
+-then
+-    docker build -t redash/redash:preview -t redash/preview:$VERSION_TAG .
+-    docker push redash/redash:preview
+-    docker push redash/preview:$VERSION_TAG
+-else
+-    docker build -t redash/redash:$VERSION_TAG .
+-    docker push redash/redash:$VERSION_TAG
+-fi
++docker build -t $DOCKERHUB_REPO:$VERSION_TAG .
++docker push $DOCKERHUB_REPO:$VERSION_TAG
+ 
+ echo "Built: $VERSION_TAG"
+\ No newline at end of file
+diff --git a/.circleci/update_version b/.circleci/update_version
+index d397fb23..4bd43407 100755
+--- a/.circleci/update_version
++++ b/.circleci/update_version
+@@ -1,6 +1,9 @@
+ #!/bin/bash
++MOZILLA_VERSION="$1"
++bin/dockerflow-version "$MOZILLA_VERSION"
++
+ VERSION=$(jq -r .version package.json)
+-FULL_VERSION=$VERSION+b$CIRCLE_BUILD_NUM
++FULL_VERSION=$VERSION+b$CIRCLE_BUILD_NUM-$MOZILLA_VERSION
+ 
+ sed -ri "s/^__version__ = '([A-Za-z0-9.-]*)'/__version__ = '$FULL_VERSION'/" redash/__init__.py
+ sed -i "s/dev/$CIRCLE_SHA1/" client/app/version.json
+diff --git a/bin/dockerflow-version b/bin/dockerflow-version
+new file mode 100755
+index 00000000..027d6197
+--- /dev/null
++++ b/bin/dockerflow-version
+@@ -0,0 +1,13 @@
++#!/bin/bash
++
++set -eo pipefail
++
++VERSION="$1"
++
++printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' \
++  "$CIRCLE_SHA1" \
++  "$VERSION" \
++  "$CIRCLE_PROJECT_USERNAME" \
++  "$CIRCLE_PROJECT_REPONAME" \
++  "$CIRCLE_BUILD_URL" \
++> version.json

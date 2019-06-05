@@ -1,0 +1,74 @@
+Bottom: 6468cbe302ff12420442ab74622f89f1a8fc1321
+Top:    61520f42a7ee270566a49e6f39ab23257a9a49bf
+Author: Allen Short <ashort@mozilla.com>
+Date:   2018-03-21 20:38:48 +0000
+
+Properly rollback failed db commits
+
+
+---
+diff --git a/redash/handlers/dashboards.py b/redash/handlers/dashboards.py
+index 869a0f59..f41cca8b 100644
+--- a/redash/handlers/dashboards.py
++++ b/redash/handlers/dashboards.py
+@@ -11,6 +11,7 @@ from redash.permissions import (can_modify, require_admin_or_owner,
+                                 require_permission)
+ from redash.security import csp_allows_embeding
+ from redash.serializers import serialize_dashboard
++from sqlalchemy.exc import IntegrityError
+ from sqlalchemy.orm.exc import StaleDataError
+ 
+ 
+@@ -199,7 +200,11 @@ class DashboardResource(BaseResource):
+         try:
+             models.db.session.commit()
+         except StaleDataError:
++            models.db.session.rollback()
+             abort(409)
++        except IntegrityError:
++            models.db.session.rollback()
++            abort(400)
+ 
+         result = serialize_dashboard(dashboard, with_widgets=True, user=self.current_user)
+ 
+diff --git a/redash/handlers/data_sources.py b/redash/handlers/data_sources.py
+index 1324d092..82396925 100644
+--- a/redash/handlers/data_sources.py
++++ b/redash/handlers/data_sources.py
+@@ -55,6 +55,7 @@ class DataSourceResource(BaseResource):
+         try:
+             models.db.session.commit()
+         except IntegrityError as e:
++            models.db.session.rollback()
+             if req['name'] in e.message:
+                 abort(400, message="Data source with the name {} already exists.".format(req['name']))
+ 
+@@ -127,6 +128,7 @@ class DataSourceListResource(BaseResource):
+ 
+             models.db.session.commit()
+         except IntegrityError as e:
++            models.db.session.rollback()
+             if req['name'] in e.message:
+                 abort(400, message="Data source with the name {} already exists.".format(req['name']))
+ 
+diff --git a/redash/handlers/users.py b/redash/handlers/users.py
+index 0eca25bd..79e397b9 100644
+--- a/redash/handlers/users.py
++++ b/redash/handlers/users.py
+@@ -138,6 +138,7 @@ class UserListResource(BaseResource):
+             models.db.session.add(user)
+             models.db.session.commit()
+         except IntegrityError as e:
++            models.db.session.rollback()
+             if "email" in e.message:
+                 abort(400, message='Email already taken.')
+             abort(500)
+@@ -267,7 +268,7 @@ class UserResource(BaseResource):
+                 message = "Email already taken."
+             else:
+                 message = "Error updating record"
+-
++            models.db.session.rollback()
+             abort(400, message=message)
+ 
+         self.record_event({

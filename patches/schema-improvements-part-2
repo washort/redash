@@ -1,0 +1,210 @@
+Bottom: ddad1786ba96c0662804baa90ee8259129a789a8
+Top:    fe243027f149705d449885438a98778494798a9b
+Author: Marina Samuel <msamuel@mozilla.com>
+Date:   2019-05-14 12:58:02 -0400
+
+Schema Improvements Part 2: Rebase Commit.
+
+
+---
+diff --git a/client/app/pages/data-sources/EditDataSource.jsx b/client/app/pages/data-sources/EditDataSource.jsx
+index 75bf14b7..0e37354d 100644
+--- a/client/app/pages/data-sources/EditDataSource.jsx
++++ b/client/app/pages/data-sources/EditDataSource.jsx
+@@ -10,6 +10,7 @@ import notification from '@/services/notification';
+ import PromiseRejectionError from '@/lib/promise-rejection-error';
+ import LoadingState from '@/components/items-list/components/LoadingState';
+ import DynamicForm from '@/components/dynamic-form/DynamicForm';
++import SchemaTable from '@/pages/data-sources/schema-table-components/SchemaTable';
+ import helper from '@/components/dynamic-form/dynamicFormHelper';
+ import { HelpTrigger, TYPES as HELP_TRIGGER_TYPES } from '@/components/HelpTrigger';
+ 
+@@ -26,13 +27,23 @@ class EditDataSource extends React.Component {
+     dataSource: null,
+     type: null,
+     loading: true,
++    schema: null,
+   };
+ 
+   componentDidMount() {
+     DataSource.get({ id: $route.current.params.dataSourceId }).$promise.then((dataSource) => {
+       const { type } = dataSource;
+       this.setState({ dataSource });
+-      DataSource.types(types => this.setState({ type: find(types, { type }), loading: false }));
++
++      const typesPromise = DataSource.types().$promise;
++      const schemaPromise = DataSource.schema({ id: $route.current.params.dataSourceId }).$promise;
++
++      typesPromise.then(types => this.setState({ type: find(types, { type }) }));
++      schemaPromise.then(data => this.setState({ schema: data.schema }));
++
++      Promise.all([typesPromise, schemaPromise]).then(() => {
++        this.setState({ loading: false });
++      });
+     }).catch((error) => {
+       // ANGULAR_REMOVE_ME This code is related to Angular's HTTP services
+       if (error.status && error.data) {
+@@ -78,6 +89,12 @@ class EditDataSource extends React.Component {
+     });
+   };
+ 
++  updateSchema = (schema, tableId, columnId) => {
++    const { dataSource } = this.state;
++    const data = { tableId, columnId, schema };
++    DataSource.updateSchema({ id: dataSource.id }, data);
++  };
++
+   testConnection = (callback) => {
+     const { dataSource } = this.state;
+     DataSource.test({ id: dataSource.id }, (httpResponse) => {
+@@ -124,6 +141,12 @@ class EditDataSource extends React.Component {
+         <div className="col-md-4 col-md-offset-4 m-b-10">
+           <DynamicForm {...formProps} />
+         </div>
++        <div className="col-md-12 admin-schema-editor">
++          <SchemaTable
++            schema={this.state.schema}
++            updateSchema={this.updateSchema}
++          />
++        </div>
+       </div>
+     );
+   }
+diff --git a/client/app/pages/data-sources/schema-table-components/EditableTable.jsx b/client/app/pages/data-sources/schema-table-components/EditableTable.jsx
+index 006a18cd..6154541e 100644
+--- a/client/app/pages/data-sources/schema-table-components/EditableTable.jsx
++++ b/client/app/pages/data-sources/schema-table-components/EditableTable.jsx
+@@ -42,7 +42,7 @@ export class EditableCell extends React.Component {
+   }
+ 
+   onChange = () => {
+-    this.setState({ visible: !this.state.visible });
++    this.setState(prevState => ({ visible: !prevState.visible }));
+   }
+ 
+   getInput = () => {
+@@ -51,7 +51,8 @@ export class EditableCell extends React.Component {
+         <TableVisibilityCheckbox
+           visible={this.state.visible}
+           onChange={this.onChange}
+-        />);
++        />
++      );
+     }
+     return <TextArea className="table-textarea" placeholder="Enter table description..." style={{ resize: 'vertical' }} />;
+   };
+diff --git a/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx b/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx
+index af4238a1..5260ded6 100644
+--- a/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx
++++ b/client/app/pages/data-sources/schema-table-components/SchemaTable.jsx
+@@ -1,5 +1,4 @@
+ import React from 'react';
+-import { react2angular } from 'react2angular';
+ import PropTypes from 'prop-types';
+ import Table from 'antd/lib/table';
+ import Popconfirm from 'antd/lib/popconfirm';
+@@ -26,7 +25,7 @@ const components = {
+   },
+ };
+ 
+-class SchemaTable extends React.Component {
++export default class SchemaTable extends React.Component {
+   static propTypes = {
+     schema: Schema, // eslint-disable-line react/no-unused-prop-types
+     updateSchema: PropTypes.func.isRequired,
+@@ -202,31 +201,33 @@ class SchemaTable extends React.Component {
+       if (error) {
+         return;
+       }
+-      const newData = [...this.state.data];
+-      let spliceIndex = newData.findIndex(item => tableKey === item.key);
++      this.setState((prevState) => {
++        const newData = [...prevState.data];
++        let spliceIndex = newData.findIndex(item => tableKey === item.key);
+ 
+-      if (spliceIndex < 0) {
+-        return;
+-      }
++        if (spliceIndex < 0) {
++          return;
++        }
+ 
+-      const tableRow = newData[spliceIndex];
+-      let dataToUpdate = newData;
+-      let rowToUpdate = tableRow;
++        const tableRow = newData[spliceIndex];
++        let dataToUpdate = newData;
++        let rowToUpdate = tableRow;
+ 
+-      const columnIndex = tableRow.columns.findIndex(item => columnKey === item.key);
+-      const columnRow = tableRow.columns[columnIndex];
+-      if (columnKey) {
+-        dataToUpdate = tableRow.columns;
+-        spliceIndex = columnIndex;
+-        rowToUpdate = columnRow;
+-      }
++        const columnIndex = tableRow.columns.findIndex(item => columnKey === item.key);
++        const columnRow = tableRow.columns[columnIndex];
++        if (columnKey) {
++          dataToUpdate = tableRow.columns;
++          spliceIndex = columnIndex;
++          rowToUpdate = columnRow;
++        }
+ 
+-      dataToUpdate.splice(spliceIndex, 1, {
+-        ...rowToUpdate,
+-        ...editedFields,
++        dataToUpdate.splice(spliceIndex, 1, {
++          ...rowToUpdate,
++          ...editedFields,
++        });
++        this.props.updateSchema(editedFields, tableRow.key, columnRow ? columnRow.key : undefined);
++        return { data: newData, editingKey: '' };
+       });
+-      this.props.updateSchema(editedFields, tableRow.key, columnRow ? columnRow.key : undefined);
+-      this.setState({ data: newData, editingKey: '' });
+     });
+   }
+ 
+@@ -256,9 +257,3 @@ class SchemaTable extends React.Component {
+     );
+   }
+ }
+-
+-export default function init(ngModule) {
+-  ngModule.component('schemaTable', react2angular(SchemaTable, null, []));
+-}
+-
+-init.init = true;
+diff --git a/client/app/services/data-source.js b/client/app/services/data-source.js
+index 6f6eda83..3db1162c 100644
+--- a/client/app/services/data-source.js
++++ b/client/app/services/data-source.js
+@@ -33,15 +33,22 @@ function DataSourceService($q, $resource, $http) {
+       isArray: false,
+       url: 'api/data_sources/:id/test',
+     },
++    schema: {
++      method: 'GET',
++      cache: false,
++      isArray: false,
++      url: 'api/data_sources/:id/schema',
++    },
++    updateSchema: {
++      method: 'POST',
++      cache: false,
++      isArray: false,
++      url: 'api/data_sources/:id/schema',
++    },
+   };
+ 
+   const DataSourceResource = $resource('api/data_sources/:id', { id: '@id' }, actions);
+ 
+-  DataSourceResource.prototype.updateSchema = function updateSchema(schema, tableId, columnId) {
+-    const data = { tableId, columnId, schema };
+-    return $http.post(`api/data_sources/${this.id}/schema`, data);
+-  };
+-
+   DataSourceResource.prototype.getSchema = function getSchema(refresh = false) {
+     if (this._schema === undefined || refresh) {
+       return fetchSchema(this.id, refresh).then((response) => {
