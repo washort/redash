@@ -1,6 +1,6 @@
 Version: 1
-Previous: 5c8548da8ff891b2991a03ce7d4592b7d2124425
-Head: e4062f5ed242d4e48ddb3fa92d2c4cb744645566
+Previous: 15a31f3f791a884369cb66bb2ebe616f24cf6ab1
+Head: a82fd0cabcd0e5e3452f21dd2b1b0a1c068051fd
 Applied:
   in-docker-entrypoint-ensure: f25d93794c5dc84eab0a67b8d58115a1b0b51fff
   update-circle-ci-for-our: 9c43e800a45ada824b50e257e59ec10e2c2f9a6c
