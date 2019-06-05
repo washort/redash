@@ -1,6 +1,7 @@
 Version: 1
-Previous: None
-Head: a82fd0cabcd0e5e3452f21dd2b1b0a1c068051fd
+Previous: 116fbd5fc216d5669e50a638bdd84147318f3cb2
+Head: 36458a549e0d6af7f830dbbe7463f89f785eb7e6
 Applied:
+  ensure-tables-exist: 36458a549e0d6af7f830dbbe7463f89f785eb7e6
 Unapplied:
 Hidden:
