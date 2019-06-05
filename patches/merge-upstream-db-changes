@@ -1,0 +1,39 @@
+Bottom: c1eaba803ce3a66a97581971e3c1ff710cd38d50
+Top:    6468cbe302ff12420442ab74622f89f1a8fc1321
+Author: Allen Short <ashort@mozilla.com>
+Date:   2018-02-14 17:52:43 +0000
+
+merge upstream db changes
+
+
+---
+diff --git a/migrations/versions/15041b7085fe_.py b/migrations/versions/15041b7085fe_.py
+new file mode 100644
+index 00000000..fcb10aa7
+--- /dev/null
++++ b/migrations/versions/15041b7085fe_.py
+@@ -0,0 +1,24 @@
++"""empty message
++
++Revision ID: 15041b7085fe
++Revises: f9571a5ab4f3, 969126bd800f
++Create Date: 2018-02-14 17:52:17.138127
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++# revision identifiers, used by Alembic.
++revision = '15041b7085fe'
++down_revision = ('f9571a5ab4f3', '969126bd800f')
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    pass
++
++
++def downgrade():
++    pass

@@ -1,0 +1,21 @@
+Bottom: f1e53b4bbeb4ed7d6b6581ab4c0e3ce0b67ee9e9
+Top:    e745df31f26e4bb4620eda3ab92097aeaf26c813
+Author: Marina Samuel <msamuel@mozilla.com>
+Date:   2018-04-27 10:31:01 -0400
+
+Add data source health monitoring via an extension.
+
+Refs: #379, #415
+
+
+---
+diff --git a/requirements.txt b/requirements.txt
+index 60956ca8..9d5133d9 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -61,4 +61,4 @@ disposable-email-domains
+ # It is not included by default because of the GPL license conflict.
+ # ldap3==2.2.4
+ gevent==1.4.0
+-redash-stmo>=2018.4.0
++redash-stmo>=2018.8.1

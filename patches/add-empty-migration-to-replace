@@ -1,0 +1,39 @@
+Bottom: abce4b4a607795e618c62b324546b9e7944924c6
+Top:    9797cbcfb664ee7d00c0408577a21d58a61d4673
+Author: Marina Samuel <msamuel@mozilla.com>
+Date:   2019-03-25 15:01:59 -0400
+
+Add empty migration to replace the removed schedule_until migration
+
+
+---
+diff --git a/migrations/versions/eb2f788f997e_.py b/migrations/versions/eb2f788f997e_.py
+new file mode 100644
+index 00000000..462f0d05
+--- /dev/null
++++ b/migrations/versions/eb2f788f997e_.py
+@@ -0,0 +1,23 @@
++"""empty message
++
++Revision ID: eb2f788f997e
++Revises: d1eae8b9893e
++Create Date: 2017-03-02 12:20:00.029066
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++# revision identifiers, used by Alembic.
++revision = 'eb2f788f997e'
++down_revision = 'd1eae8b9893e'
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    pass
++
++
++def downgrade():
++    pass
+\ No newline at end of file

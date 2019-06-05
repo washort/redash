@@ -1,0 +1,28 @@
+Bottom: e745df31f26e4bb4620eda3ab92097aeaf26c813
+Top:    cb5736f7801f57dbb062df57736cdfd725c48bbd
+Author: Allen Short <ashort@mozilla.com>
+Date:   2018-11-09 12:19:50 -0600
+
+Use production build of react when deployed (fixes #606)
+
+
+---
+diff --git a/webpack.config.js b/webpack.config.js
+index e782dbed..a13a233a 100644
+--- a/webpack.config.js
++++ b/webpack.config.js
+@@ -230,6 +230,14 @@ if (process.env.DEV_SERVER_HOST) {
+   config.devServer.host = process.env.DEV_SERVER_HOST;
+ }
+ 
++if (isProduction) {
++  config.plugins.push(
++    new webpack.DefinePlugin({
++      'process.env.NODE_ENV': JSON.stringify('production')
++    })
++  );
++}
++
+ if (process.env.BUNDLE_ANALYZER) {
+   config.plugins.push(new BundleAnalyzerPlugin());
+ }

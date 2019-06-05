@@ -1,0 +1,211 @@
+Bottom: 1b37c2b9229f963daf22a0b988d4d09d05a314f2
+Top:    f90e95d925322ffa78efdf1ca6a0b64c199f6414
+Author: Jannis Leidel <jannis@leidel.info>
+Date:   2019-05-22 15:21:10 +0200
+
+Bundle extensions in Docker image.
+
+
+---
+diff --git a/.circleci/config.yml b/.circleci/config.yml
+index 3716753f..a638ccc8 100644
+--- a/.circleci/config.yml
++++ b/.circleci/config.yml
+@@ -61,8 +61,9 @@ jobs:
+     steps:
+       - checkout
+       - run: sudo apt install python-pip
++      - run: bin/install-extensions
++      - run: bin/bundle-extensions
+       - run: npm install
+-      - run: npm run bundle
+       - run: npm test
+       - run: npm run lint
+   build-tarball:
+@@ -71,9 +72,10 @@ jobs:
+     steps:
+       - checkout
+       - run: sudo apt install python-pip
++      - run: bin/install-extensions
++      - run: bin/bundle-extensions
+       - run: npm install
+       - run: .circleci/update_version
+-      - run: npm run bundle
+       - run: npm run build
+       - run: rm -rf ./node_modules/
+       - run: .circleci/pack
+@@ -102,7 +104,7 @@ jobs:
+       - setup_remote_docker
+       - checkout
+       - run: .circleci/update_version "$CIRCLE_TAG"
+-      - run: .circleci/docker_build "rc"
++      - run: .circleci/docker_build "$CIRCLE_TAG"
+       # Create alias from tag to "latest":
+       - run: docker tag $DOCKERHUB_REPO:$CIRCLE_TAG $DOCKERHUB_REPO:latest
+       - run: docker push $DOCKERHUB_REPO:latest
+diff --git a/Dockerfile b/Dockerfile
+index 2f719909..89ee0cdf 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,3 +1,16 @@
++FROM redash/base:latest as extension-installer
++
++# We copy a few of the extension related files,
++# including (optionally via the * in the path) a requirements file
++COPY bin/install-extensions bin/bundle-extensions requirements_extensions.txt /app/
++
++# Then we install any extension that may or may not be defined
++# in an optiona requirements file for extensions.
++RUN ./install-extensions
++# And finally we copy the extension bundle files to the right location
++# where the frontend build process can find them below.
++RUN ./bundle-extensions
++
+ FROM node:10 as frontend-builder
+ 
+ WORKDIR /frontend
+@@ -5,6 +18,8 @@ COPY package.json package-lock.json /frontend/
+ RUN npm install
+ 
+ COPY . /frontend
++COPY --from=extension-installer /app/client/app/extensions /app/client/app/extensions
++
+ RUN npm run build
+ 
+ FROM redash/base:latest
+@@ -14,13 +29,14 @@ ARG skip_ds_deps
+ 
+ # We first copy only the requirements file, to avoid rebuilding on every file
+ # change.
+-COPY requirements.txt requirements_dev.txt requirements_all_ds.txt ./
++COPY requirements*.txt ./
+ RUN pip install -r requirements.txt -r requirements_dev.txt
+ RUN if [ "x$skip_ds_deps" = "x" ] ; then pip install -r requirements_all_ds.txt ; else echo "Skipping pip install -r requirements_all_ds.txt" ; fi
+ 
+ COPY . /app
+ COPY --from=frontend-builder /frontend/client/dist /app/client/dist
+ RUN chown -R redash /app
++
+ USER redash
+ 
+ ENTRYPOINT ["/app/bin/docker-entrypoint"]
+diff --git a/Makefile b/Makefile
+index 19a146fa..7d60fe5d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -22,9 +22,6 @@ clean:
+ down:
+ 	docker-compose down
+ 
+-bundle:
+-	docker-compose run server bin/bundle-extensions
+-
+ tests:
+ 	docker-compose run server tests
+ 
+@@ -34,20 +31,19 @@ lint:
+ backend-unit-tests: up test_db
+ 	docker-compose run --rm --name tests server tests
+ 
+-frontend-unit-tests: bundle
++frontend-unit-tests:
+ 	npm install
+-	npm run bundle
+ 	npm test
+ 
+ test: lint backend-unit-tests frontend-unit-tests
+ 
+-build: bundle
++build:
+ 	npm run build
+ 
+-watch: bundle
++watch:
+ 	npm run watch
+ 
+-start: bundle
++start:
+ 	npm run start
+ 
+ redis-cli:
+diff --git a/bin/bundle-extensions b/bin/bundle-extensions
+index 56173f4c..c9010fd1 100755
+--- a/bin/bundle-extensions
++++ b/bin/bundle-extensions
+@@ -1,23 +1,19 @@
+ #!/usr/bin/env python
+-
+ import os
+-from subprocess import call
+ from distutils.dir_util import copy_tree
+ 
+ from pkg_resources import iter_entry_points, resource_filename, resource_isdir
+ 
+ 
+-
+-# Make a directory for extensions and set it as an environment variable
+-# to be picked up by webpack.
++PARENT_DIR = os.path.dirname(os.path.dirname(__file__))
+ EXTENSIONS_RELATIVE_PATH = os.path.join('client', 'app', 'extensions')
+-EXTENSIONS_DIRECTORY = os.path.join(
+-    os.path.dirname(os.path.dirname(__file__)),
+-    EXTENSIONS_RELATIVE_PATH)
++EXTENSIONS_DIRECTORY = os.path.join(PARENT_DIR, EXTENSIONS_RELATIVE_PATH)
+ 
++
++# Make a directory for extensions to copy to
+ if not os.path.exists(EXTENSIONS_DIRECTORY):
+     os.makedirs(EXTENSIONS_DIRECTORY)
+-os.environ["EXTENSIONS_DIRECTORY"] = EXTENSIONS_RELATIVE_PATH
++
+ 
+ for entry_point in iter_entry_points('redash.extensions'):
+     # This is where the frontend code for an extension lives
+@@ -35,8 +31,7 @@ for entry_point in iter_entry_points('redash.extensions'):
+     content_folder = resource_filename(root_module, content_folder_relative)
+ 
+     # This is where we place our extensions folder.
+-    destination = os.path.join(
+-        EXTENSIONS_DIRECTORY,
+-        entry_point.name)
++    destination = os.path.join(EXTENSIONS_DIRECTORY, entry_point.name)
+ 
++    print(u"Copying %s to %s" % (content_folder, destination))
+     copy_tree(content_folder, destination)
+diff --git a/bin/install-extensions b/bin/install-extensions
+new file mode 100755
+index 00000000..b8ec96b1
+--- /dev/null
++++ b/bin/install-extensions
+@@ -0,0 +1,13 @@
++#!/usr/bin/env python
++import os
++import subprocess
++
++PARENT_DIR = os.path.dirname(os.path.dirname(__file__))
++EXTENSIONS_REQUIREMENTS = os.path.join(PARENT_DIR, "requirements_extensions.txt")
++
++# Install extensions
++if os.path.isfile(EXTENSIONS_REQUIREMENTS):
++    subprocess.check_call(
++        ["pip", "install", "--user", "-r", EXTENSIONS_REQUIREMENTS]
++    )
++    print("Installed extensions from %s." % EXTENSIONS_REQUIREMENTS)
+diff --git a/requirements.txt b/requirements.txt
+index e10b47f9..328908e0 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -61,4 +61,5 @@ disposable-email-domains
+ # It is not included by default because of the GPL license conflict.
+ # ldap3==2.2.4
+ gevent==1.4.0
+-redash-stmo>=2019.3.2
++
++-r requirements_extensions.txt
+diff --git a/requirements_extensions.txt b/requirements_extensions.txt
+new file mode 100644
+index 00000000..4319c24d
+--- /dev/null
++++ b/requirements_extensions.txt
+@@ -0,0 +1 @@
++redash-stmo>=2019.3.2
