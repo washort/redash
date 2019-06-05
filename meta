@@ -1,37 +1,6 @@
 Version: 1
-Previous: 15a31f3f791a884369cb66bb2ebe616f24cf6ab1
-Head: a82fd0cabcd0e5e3452f21dd2b1b0a1c068051fd
+Previous: e24a542a378cb26bb21469e4cf2fe0a0e3dab03d
+Head: e4062f5ed242d4e48ddb3fa92d2c4cb744645566
 Applied:
-  in-docker-entrypoint-ensure: f25d93794c5dc84eab0a67b8d58115a1b0b51fff
-  update-circle-ci-for-our: 9c43e800a45ada824b50e257e59ec10e2c2f9a6c
-  switch-to-pymysql-for-mysql-5: da69eacc5423879a4ebfec69649d2ff1c1be2151
-  don-t-execute-query-when: d47f80f2d48522dc4cde1203c39ee1186f72a624
-  add-compare-query-version: 61d4af6b698212784017120896815beceef45a61
-  filter-tables-from-schema: b79b8edb00590abaa4ffb6c9d02b864ad820e4a1
-  merge-mozilla-schema-updates: 5a5a4f421c32599b24ef54a3b6e819fd3bc1b652
-  merge-upstream-db-changes: 53011d1ec9cc1c46a08bcbf5082feb8277df116c
-  properly-rollback-failed-db: 3c7a0ee9219d55564b8cb7b213c94aa24a69a9b5
-  install-redash-stmo: 4cd38bfc48ece0467cc67aaa45e4001c1b7f826c
-  unique-names-for-query: 478ea7944d39db4406d7fbbbbeba4283b5524903
-  closes-396-integration-with: 9a1c890033a571ac9f0e48b97d45d96efe37edcb
-  add-data-source-health: 2941a7249796e423967ba018cb5a33d03564462e
-  use-production-build-of-react: f1dfa264e456cb9e52d6297654635f3e8ffefeee
-  enable-documentation-links-and: bfc7fb04874c11f59ceb9e73186061ad4de7c73b
-  use-entry_point-module_name: 64fc8d8e5dc6b20e19ed501e91080139dbca49ef
-  show-query-results-for: 90a88b8533be93f4be679a9e74c8f8e8dd2c54f9
-  show-number-of-queries-ahead: 934c17af7bcf0186c0a0d3b707a573923be3175b
-  aggregate-query-results-re-35: 4418a75808cc5b7d4299a769ae223dc5ccfc6166
-  add-empty-migration-to-replace: d1d6fe4c77073f8eadd45628d7fd07757712b3ed
-  add-merge-migration: 2a48c2936124603545b0711d9bcf3bee6d9adddf
-  schema-viewer-drawer-3291: 3f00108bbfc8070f639eaa9a75169e1ef14b9e7b
-  bump-redash-stmo: 092fa6856d0978ab26ac8f0b817e4bf3e69d9814
-  fix-migration-names: 6b19137e42fb6cfca533141a6119457718820675
-  schema-improvements-part-2-add: fd4f684a4214e166f4ce93fa70a01f04549cf58c
-  schema-improvements-part-2: bc4add271def2c923c909320661b7f348ce0e69d
-  adding-bigquery-schema-drawer: b90b5e2c8b9dbe37af9d5a92f6836a989f477317
-  add-migrations-graph-helper: 6ece120a81e39b2f9ecf9db6d2a7dd6307cdc6d3
-  deleted-stale-migration: 92b7a76d6c19a3df5345b5cd4473b0fcc0e7224f
-  bundle-extensions-in-docker: 91b40e1cf4e850273e8434866c9a5de273f044e2
-  copy-extensions-into-frontend: e4062f5ed242d4e48ddb3fa92d2c4cb744645566
 Unapplied:
 Hidden:
